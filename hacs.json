@@ -1,4 +1,5 @@
 {
     "name": "MyJDownloader",
-    "domains": ["sensor"]
+    "domains": ["sensor"],
+    "render_readme": true
 }
