@@ -93,7 +93,7 @@ class MyJDSensor(Entity):
         try:
             if not self._myjd.list_devices():
                 self._myjd.update_devices()
-            device = self._myjd.get_device('JDownloader@doudz')
+            device = self._myjd.get_device(self._name)
             self._attributes['name'] = device.name
             self._attributes['device_id'] = device.device_id
             self._attributes['device_type'] = device.device_type
