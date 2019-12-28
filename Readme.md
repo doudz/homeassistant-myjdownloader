@@ -15,3 +15,5 @@ sensor:
 ```
 
 `name` is optionnal, if not provided it will generated as many as found JDownloader device
+The name could be found on MyJDownloader web interface <https://my.jdownloader.org/index.html>
+
