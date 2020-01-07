@@ -5,6 +5,7 @@ import logging
 import voluptuous as vol
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA
+from homeassistant.exceptions import PlatformNotReady
 from homeassistant.const import (
     CONF_EMAIL,
     CONF_PASSWORD,
@@ -40,7 +41,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
         myjd.connect(email, password)
     except myjdapi.myjdapi.MYJDException:
         _LOGGER.error('Failed to connect to MyJDownloader, please check email and password')
-        return
+        raise PlatformNotReady
 
     entities = []
     if name:
@@ -50,6 +51,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
             entities.append(MyJDSensor(hass, myjd, device['name']))
     if not entities:
         _LOGGER.warning('Failed to setup MyJDownloader sensor, no device found.')
+        raise PlatformNotReady
 
     add_entities(
         entities, True
@@ -102,8 +104,10 @@ class MyJDSensor(Entity):
             device = self._myjd.get_device(self._name)
 
             # get download information
+            currentDownloads = []
             downloadList = device.downloads.query_links()
-            currentDownloads = [x for x in downloadList if x['status'] == 'Download']
+            if isinstance(downloadList, list):
+                currentDownloads = [x for x in downloadList if not x['finished']]
 
             # get current speed information
             value = device.downloadcontroller.get_speed_in_bytes()
@@ -123,4 +127,6 @@ class MyJDSensor(Entity):
             else:
                 _LOGGER.warning('Failed to check MyJDownloader sensor, %s', e)
                 value = STATE_UNKNOWN
+        if value is False:  # failed to query
+            value = STATE_UNKNOWN
         self._state = value
