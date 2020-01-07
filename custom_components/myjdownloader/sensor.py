@@ -81,7 +81,7 @@ class MyJDSensor(Entity):
     def device_state_attributes(self):
         """Return the state attributes."""
         return self._attributes
-        
+
     @property
     def unit_of_measurement(self):
         """Return the unit of measurement."""
@@ -104,7 +104,7 @@ class MyJDSensor(Entity):
             # get download information
             downloadList = device.downloads.query_links()
             currentDownloads = [x for x in downloadList if x['status'] == 'Download']
-            
+
             # get current speed information
             value = device.downloadcontroller.get_speed_in_bytes()
 
@@ -115,7 +115,7 @@ class MyJDSensor(Entity):
             self._attributes['status'] = device.downloadcontroller.get_current_state()
             self._attributes['download_list'] = downloadList
             self._attributes['current_downloads'] = currentDownloads
-            
+
         except myjdapi.myjdapi.MYJDException as e:
             e = str(e).strip()
             if e == 'Device not found':
