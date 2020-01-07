@@ -6,15 +6,14 @@ A simple sensor for MyJDownloader state
 
 # Configuration
 
-```
+``` YAML
 sensor:
   - platform: myjdownloader
     email: myname@email.com
     password: mypassword
-    name: JDownloader@doudz
+    name: JDownloader@doudz # optional, if not provided all JDownloader devices will be generated.
+    scan_interval: 5 # optional - default is 60
 ```
 
-`name` is optionnal, if not provided it will generated as many as found JDownloader device.
-
-The name could be found on MyJDownloader web interface <https://my.jdownloader.org/index.html>
+The name can be found via the MyJDownloader web interface <https://my.jdownloader.org/index.html>
 
