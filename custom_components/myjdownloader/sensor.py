@@ -107,7 +107,7 @@ class MyJDSensor(Entity):
             currentDownloads = []
             downloadList = device.downloads.query_links()
             if isinstance(downloadList, list):
-                currentDownloads = [x for x in downloadList if not x['finished']]
+                currentDownloads = [x for x in downloadList if not x.get('finished', False)]
 
             # get current speed information
             value = device.downloadcontroller.get_speed_in_bytes()
