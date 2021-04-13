@@ -110,7 +110,7 @@ class MyJDSensor(Entity):
                 currentDownloads = [x for x in downloadList if not x.get('finished', False)]
 
             # get current speed information
-            value = device.downloadcontroller.get_speed_in_bytes() / 1_000_000
+            value = round(device.downloadcontroller.get_speed_in_bytes() / 1_000_000, 2)
 
             # get if there are updates available
             updates = device.update.is_update_available()
