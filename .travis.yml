@@ -2,13 +2,6 @@ language: python
 
 matrix:
   include:
-    - python: 3.5
-      env: TOXENV=py35
-      install:
-        - pip install homeassistant tox
-      script:
-        - tox
-        - python3 -m unittest
     - python: 3.6
       env: TOXENV=py36
       install:
