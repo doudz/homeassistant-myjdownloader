@@ -16,7 +16,6 @@ from homeassistant.util import Throttle
 
 from .const import (
     DATA_MYJDOWNLOADER_CLIENT,
-    DATA_MYJDOWNLOADER_JDOWNLOADERS,
     DOMAIN,
     MYJDAPI_APP_KEY,
     SCAN_INTERVAL_SECONDS,
@@ -40,11 +39,16 @@ class MyJDownloaderHub:
         self._sem = asyncio.Semaphore(1)  # API calls need to be sequential
         self.myjd = Myjdapi()
         self.myjd.set_app_key(MYJDAPI_APP_KEY)
+        self.devices = {}  # store devices currently online
 
-    def authenticate(self, email, password) -> bool:
+    @Throttle(datetime.timedelta(seconds=SCAN_INTERVAL_SECONDS))
+    async def authenticate(self, email, password) -> bool:
         """Authenticate with Myjdapi."""
         try:
-            self.myjd.connect(email, password)
+            async with self._sem:
+                await self._hass.async_add_executor_job(
+                    self.myjd.connect, email, password
+                )
         except MYJDException as exception:
             _LOGGER.error("Failed to connect to MyJDownloader")
             raise exception
@@ -53,81 +57,72 @@ class MyJDownloaderHub:
 
     async def async_query(self, func, *args, **kwargs):
         """Perform query while ensuring sequentiality of API calls."""
+        # TODO catch exceptions, retry once with reconnect, then connect, then reauth if invalid_auth
+        # TODO maybe with self.myjd.is_connected()
         async with self._sem:
             return await self._hass.async_add_executor_job(func, *args, **kwargs)
 
-    @Throttle(datetime.timedelta(seconds=SCAN_INTERVAL_SECONDS))
-    def reconnect(self) -> bool:
-        """Reconnect to MyJDownloaders."""
+    async def async_update_devices(self):
+        """Update list of online devices."""
+
+        # We need to reconnect to the API to query the list of active JDownloaders
+        await self.async_query(self.myjd.reconnect)  # TODO move to async query
+        await self.async_query(self.myjd.update_devices)
+
+        # add Jddevice objects for all online JDownloaders, if not exist
+        available_device_infos = await self.async_query(self.myjd.list_devices)
+        for device_info in available_device_infos:
+            if not device_info["id"] in self.devices.keys():
+                _LOGGER.debug("JDownloader (%s) is online", device_info["name"])
+                self.devices.update(
+                    {
+                        device_info["id"]: await self.async_query(
+                            self.myjd.get_device, None, device_info["id"]
+                        )
+                    }
+                )
+                # TODO create new set of entities for that device, if they don't exist
+
+        # remove JDownloader objects, that are not online anymore
+        unavailable_device_ids = [
+            device_id
+            for device_id in self.devices.keys()
+            if device_id not in [device["id"] for device in available_device_infos]
+        ]
+        for device_id in unavailable_device_ids:
+            _LOGGER.debug("JDownloader (%s) is offline", self.devices[device_id].name)
+            del self.devices[device_id]
+
+        return self.devices
+
+    def get_device(self, device_id):
+        """Return an online device or raise Exception."""
         try:
-            self.myjd.reconnect()
-        except MYJDException as exception:
-            _LOGGER.error("Failed to connect to MyJDownloader")
-            raise exception
-        else:
-            return self.myjd.is_connected()
-
-    @Throttle(datetime.timedelta(seconds=SCAN_INTERVAL_SECONDS))
-    def update_jdownloaders(self) -> list:
-        """Update list of available JDownloaders."""
-
-        # get device list
-        try:
-            self.myjd.update_devices()
-        except MYJDException as exception:
-            _LOGGER.error("Failed to query available JDownloaders")
-            raise exception
-
-        # get device objects
-        jdownloaders = []
-        for device_entry in self.myjd.list_devices():
-            try:
-                jdownloaders.append(self.myjd.get_device(device_id=device_entry["id"]))
-            except MYJDException as exception:
-                if str(exception).strip() == "Device not found":
-                    _LOGGER.warning(
-                        "Failed to check JDownloader '%s', %s",
-                        device_entry["id"],
-                        exception,
-                    )
-                else:
-                    _LOGGER.error("Failed to query JDownloader")
-                    raise exception
-        return jdownloaders
+            return self.devices[device_id]
+        except Exception as ex:
+            raise Exception(f"JDownloader ({device_id}) not online") from ex
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up MyJDownloader from a config entry."""
 
     # create data storage
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
-        DATA_MYJDOWNLOADER_CLIENT: None,
-        DATA_MYJDOWNLOADER_JDOWNLOADERS: [],
-    }
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {DATA_MYJDOWNLOADER_CLIENT: None}
 
     # initial connection
     hub = MyJDownloaderHub(hass)
     try:
-        if not await hass.async_add_executor_job(
-            hub.authenticate, entry.data[CONF_EMAIL], entry.data[CONF_PASSWORD]
+        if not await hub.authenticate(
+            entry.data[CONF_EMAIL], entry.data[CONF_PASSWORD]
         ):
             raise ConfigEntryNotReady
     except MYJDException as exception:
         raise ConfigEntryNotReady from exception
     else:
+        await hub.async_update_devices()  # get initial list of JDownloaders
         hass.data.setdefault(DOMAIN, {})[entry.entry_id][
             DATA_MYJDOWNLOADER_CLIENT
         ] = hub
-
-    # get list of JDownloaders
-    try:
-        jdownloaders = await hass.async_add_executor_job(hub.update_jdownloaders)
-    except MYJDException as exception:
-        raise ConfigEntryNotReady from exception
-    else:
-        hass.data[DOMAIN][entry.entry_id][
-            DATA_MYJDOWNLOADER_JDOWNLOADERS
-        ] = jdownloaders
 
     # setup platforms
     for platform in PLATFORMS:

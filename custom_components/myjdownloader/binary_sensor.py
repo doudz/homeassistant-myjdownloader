@@ -2,20 +2,13 @@
 
 import datetime
 
-from myjdapi.myjdapi import Jddevice
-
 from homeassistant.components.binary_sensor import (
     DEVICE_CLASS_PROBLEM,
     BinarySensorEntity,
 )
 
 from . import MyJDownloaderHub
-from .const import (
-    DATA_MYJDOWNLOADER_CLIENT,
-    DATA_MYJDOWNLOADER_JDOWNLOADERS,
-    DOMAIN,
-    SCAN_INTERVAL_SECONDS,
-)
+from .const import DATA_MYJDOWNLOADER_CLIENT, DOMAIN, SCAN_INTERVAL_SECONDS
 from .entities import MyJDownloaderDeviceEntity
 
 SCAN_INTERVAL = datetime.timedelta(seconds=SCAN_INTERVAL_SECONDS)
@@ -25,9 +18,9 @@ async def async_setup_entry(hass, entry, async_add_entities, discovery_info=None
     """Set up the binary sensor using config entry."""
     dev = []
     hub = hass.data[DOMAIN][entry.entry_id][DATA_MYJDOWNLOADER_CLIENT]
-    for device in hass.data[DOMAIN][entry.entry_id][DATA_MYJDOWNLOADER_JDOWNLOADERS]:
+    for device_id in hub.devices.keys():
         dev += [
-            MyJDownloaderUpdateAvailableSensor(hub, device),
+            MyJDownloaderUpdateAvailableSensor(hub, device_id),
         ]
     async_add_entities(dev, True)
 
@@ -38,7 +31,7 @@ class MyJDownloaderBinarySensor(MyJDownloaderDeviceEntity, BinarySensorEntity):
     def __init__(
         self,
         hub: MyJDownloaderHub,
-        device: Jddevice,
+        device_id: str,
         name_template: str,
         icon: str,
         measurement: str,
@@ -50,7 +43,7 @@ class MyJDownloaderBinarySensor(MyJDownloaderDeviceEntity, BinarySensorEntity):
         self._device_class = device_class
         self.measurement = measurement
 
-        super().__init__(hub, device, name_template, icon, enabled_default)
+        super().__init__(hub, device_id, name_template, icon, enabled_default)
 
     @property
     def unique_id(self) -> str:
@@ -81,12 +74,12 @@ class MyJDownloaderUpdateAvailableSensor(MyJDownloaderBinarySensor):
     def __init__(
         self,
         hub: MyJDownloaderHub,
-        device: Jddevice,
+        device_id: str,
     ) -> None:
         """Initialize MyJDownloader sensor."""
         super().__init__(
             hub,
-            device,
+            device_id,
             "JDownloader $device_name Update Available",
             None,
             "update_available",
@@ -95,6 +88,5 @@ class MyJDownloaderUpdateAvailableSensor(MyJDownloaderBinarySensor):
 
     async def _myjdownloader_update(self) -> None:
         """Update MyJDownloader entity."""
-        self._state = await self.hub.async_query(
-            self._device.update.is_update_available
-        )
+        device = self.hub.get_device(self._device_id)
+        self._state = await self.hub.async_query(device.update.is_update_available)

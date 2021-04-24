@@ -4,8 +4,6 @@ import logging
 from string import Template
 from typing import Any
 
-from myjdapi.myjdapi import Jddevice
-
 from homeassistant.helpers.entity import Entity
 
 from . import MyJDownloaderHub
@@ -78,43 +76,48 @@ class MyJDownloaderDeviceEntity(MyJDownloaderEntity):
     def __init__(
         self,
         hub: MyJDownloaderHub,
-        device: Jddevice,
+        device_id: str,
         name_template: str,
         icon: str,
         enabled_default: bool = True,
     ) -> None:
         """Initialize the MyJDownloader device entity."""
-
-        self._device = device
-
-        name = Template(name_template).substitute(device_name=self._device.name)
+        self._device_id = device_id
+        device = hub.get_device(self._device_id)
+        self._device_name = device.name
+        self._device_type = device.device_type
+        name = Template(name_template).substitute(device_name=self._device_name)
         super().__init__(hub, name, icon, enabled_default)
 
     @property
     def device_info(self) -> "dict[str, Any]":
         """Return device information about this MyJDownloader instance."""
         return {
-            "identifiers": {(DOMAIN, self._device.device_id)},
-            "name": f"JDownloader {self._device.name}",
+            "identifiers": {(DOMAIN, self._device_id)},
+            "name": f"JDownloader {self._device_name}",
             "manufacturer": "AppWork GmbH",
-            "model": self._device.device_type,
+            "model": self._device_type,
             "sw_version": None,  # TODO add version method to upstream Jddevice
             "entry_type": "service",
         }
 
-    # Services are registered in setup of sensor platform.
-    def restart_and_update(self):
-        """Restart and update JDownloader."""
-        self._device.update.restart_and_update()
+    # Services are registered in setup of sensor platform for each JDownloader.
+    async def restart_and_update(self):
+        """Service call to restart and update JDownloader."""
+        device = self.hub.get_device(self._device_id)
+        await self.hub.async_query(device.update.restart_and_update)
 
-    def run_update_check(self):
-        """Run update check of JDownloader."""
-        self._device.update.run_update_check()
+    async def run_update_check(self):
+        """Service call to run update check of JDownloader."""
+        device = self.hub.get_device(self._device_id)
+        await self.hub.async_query(device.update.run_update_check)
 
-    def start_downloads(self):
-        """Start downloads."""
-        self._device.downloadcontroller.start_downloads()
+    async def start_downloads(self):
+        """Service call to start downloads."""
+        device = self.hub.get_device(self._device_id)
+        await self.hub.async_query(device.update.start_downloads)
 
-    def stop_downloads(self):
-        """Stop downloads."""
-        self._device.downloadcontroller.stop_downloads()
+    async def stop_downloads(self):
+        """Service call to stop downloads."""
+        device = self.hub.get_device(self._device_id)
+        await self.hub.async_query(device.update.stop_downloads)

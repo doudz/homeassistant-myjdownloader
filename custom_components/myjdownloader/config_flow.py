@@ -28,9 +28,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     hub = MyJDownloaderHub(hass)
     try:
-        if not await hass.async_add_executor_job(
-            hub.authenticate, data[CONF_EMAIL], data[CONF_PASSWORD]
-        ):
+        if not await hub.authenticate(data[CONF_EMAIL], data[CONF_PASSWORD]):
             raise InvalidAuth
     except MYJDException as exception:
         raise CannotConnect from exception
