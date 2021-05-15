@@ -1,8 +1,7 @@
-"""Base entitiy classes for MyJDownloader integration."""
+"""Base entity classes for MyJDownloader integration."""
 
 import logging
 from string import Template
-from typing import Any
 
 from homeassistant.helpers.entity import Entity
 
@@ -90,7 +89,7 @@ class MyJDownloaderDeviceEntity(MyJDownloaderEntity):
         super().__init__(hub, name, icon, enabled_default)
 
     @property
-    def device_info(self) -> "dict[str, Any]":
+    def device_info(self):
         """Return device information about this MyJDownloader instance."""
         return {
             "identifiers": {(DOMAIN, self._device_id)},

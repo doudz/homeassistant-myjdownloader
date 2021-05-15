@@ -12,7 +12,7 @@ A rewrite of the awesome [MyJDownloader integration by doudz](https://github.com
 
 ## Configuration
 
-Add this repository to HACS, install it, then go to Configuration > Integrations > Add Integration > Choose "MyJDownloader" and enter your email address and password. Your currently available JDownloaders should appear as devices.
+Add this repository to HACS, install it, then go to Configuration > Integrations > Add Integration > Choose "MyJDownloader" and enter your email address and password.
 
 ## Features
 
@@ -42,4 +42,3 @@ Add this repository to HACS, install it, then go to Configuration > Integrations
 
 - [ ] When using the pause switch, it might take a while for the status sensor to reflect the new pause state.
 - [ ] There is not much error handling yet, e.g. when you change your password, you need to remove and add the integration again.
-- [ ] Not tested with more than one JDownloader yet.

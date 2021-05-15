@@ -2,16 +2,18 @@
 
 import datetime
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import DOMAIN, SensorEntity
 from homeassistant.const import DATA_RATE_MEGABYTES_PER_SECOND, STATE_UNKNOWN
+from homeassistant.core import callback
 from homeassistant.helpers import entity_platform
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from . import MyJDownloaderHub
 from .const import (
     ATTR_LINKS,
     ATTR_PACKAGES,
     DATA_MYJDOWNLOADER_CLIENT,
-    DOMAIN,
+    DOMAIN as MYJDOWNLOADER_DOMAIN,
     SCAN_INTERVAL_SECONDS,
     SERVICE_RESTART_AND_UPDATE,
     SERVICE_RUN_UPDATE_CHECK,
@@ -25,20 +27,35 @@ SCAN_INTERVAL = datetime.timedelta(seconds=SCAN_INTERVAL_SECONDS)
 
 async def async_setup_entry(hass, entry, async_add_entities, discovery_info=None):
     """Set up the sensor using config entry."""
-    dev = []
-    hub = hass.data[DOMAIN][entry.entry_id][DATA_MYJDOWNLOADER_CLIENT]
+    hub = hass.data[MYJDOWNLOADER_DOMAIN][entry.entry_id][DATA_MYJDOWNLOADER_CLIENT]
 
-    # This device-less sensor fetches the list of currently online devices
-    dev.append(MyJDownloaderJDownloadersOnlineSensor(hub))
+    # This device-less sensor periodically fetches the list of currently online devices
+    async_add_entities([MyJDownloaderJDownloadersOnlineSensor(hub)], True)
 
-    for device_id in hub.devices.keys():
-        dev += [
-            MyJDownloaderDownloadSpeedSensor(hub, device_id),
-            MyJDownloaderPackagesSensor(hub, device_id),
-            MyJDownloaderLinksSensor(hub, device_id),
-            MyJDownloaderStatusSensor(hub, device_id),
-        ]
-    async_add_entities(dev, True)
+    @callback
+    def async_add_sensor(devices=hub.devices):
+        entities = []
+
+        for device_id in devices.keys():
+            if DOMAIN not in hub.devices_platforms[device_id]:
+                hub.devices_platforms[device_id].add(DOMAIN)
+                entities += [
+                    MyJDownloaderDownloadSpeedSensor(hub, device_id),
+                    MyJDownloaderPackagesSensor(hub, device_id),
+                    MyJDownloaderLinksSensor(hub, device_id),
+                    MyJDownloaderStatusSensor(hub, device_id),
+                ]
+
+        if entities:
+            async_add_entities(entities, True)
+
+    entry.async_on_unload(
+        async_dispatcher_connect(
+            hass, f"{MYJDOWNLOADER_DOMAIN}_new_devices", async_add_sensor
+        )
+    )
+
+    async_add_sensor(hub.devices)
 
     # device services
     platform = entity_platform.current_platform.get()
@@ -83,7 +100,6 @@ class MyJDownloaderDeviceSensor(MyJDownloaderDeviceEntity, SensorEntity):
         self._state = None
         self._unit_of_measurement = unit_of_measurement
         self.measurement = measurement
-
         super().__init__(hub, device_id, name_template, icon, enabled_default)
 
     @property
@@ -91,9 +107,9 @@ class MyJDownloaderDeviceSensor(MyJDownloaderDeviceEntity, SensorEntity):
         """Return the unique ID for this sensor."""
         return "_".join(
             [
-                DOMAIN,
+                MYJDOWNLOADER_DOMAIN,
                 self._name,
-                "sensor",
+                DOMAIN,
                 self.measurement,
             ]
         )
@@ -125,7 +141,6 @@ class MyJDownloaderSensor(MyJDownloaderEntity):
         self._state = None
         self._unit_of_measurement = unit_of_measurement
         self.measurement = measurement
-
         super().__init__(hub, name, icon, enabled_default)
 
     @property
@@ -133,9 +148,9 @@ class MyJDownloaderSensor(MyJDownloaderEntity):
         """Return the unique ID for this sensor."""
         return "_".join(
             [
-                DOMAIN,
+                MYJDOWNLOADER_DOMAIN,
                 self._name,
-                "sensor",
+                DOMAIN,
                 self.measurement,
             ]
         )

@@ -5,11 +5,17 @@ import logging
 
 from myjdapi.myjdapi import MYJDException
 
-from homeassistant.components.switch import SwitchEntity
+from homeassistant.components.switch import DOMAIN, SwitchEntity
 from homeassistant.const import STATE_UNKNOWN
+from homeassistant.core import callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from . import MyJDownloaderHub
-from .const import DATA_MYJDOWNLOADER_CLIENT, DOMAIN, SCAN_INTERVAL_SECONDS
+from .const import (
+    DATA_MYJDOWNLOADER_CLIENT,
+    DOMAIN as MYJDOWNLOADER_DOMAIN,
+    SCAN_INTERVAL_SECONDS,
+)
 from .entities import MyJDownloaderDeviceEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -18,15 +24,31 @@ SCAN_INTERVAL = datetime.timedelta(seconds=SCAN_INTERVAL_SECONDS)
 
 
 async def async_setup_entry(hass, entry, async_add_entities, discovery_info=None):
-    """Set up the sensor using config entry."""
-    dev = []
-    hub = hass.data[DOMAIN][entry.entry_id][DATA_MYJDOWNLOADER_CLIENT]
-    for device_id in hub.devices.keys():
-        dev += [
-            MyJDownloaderPauseSwitch(hub, device_id),
-            MyJDownloaderLimitSwitch(hub, device_id),
-        ]
-    async_add_entities(dev, True)
+    """Set up the switch using config entry."""
+    hub = hass.data[MYJDOWNLOADER_DOMAIN][entry.entry_id][DATA_MYJDOWNLOADER_CLIENT]
+
+    @callback
+    def async_add_switch(devices=hub.devices):
+        entities = []
+
+        for device_id in devices.keys():
+            if DOMAIN not in hub.devices_platforms[device_id]:
+                hub.devices_platforms[device_id].add(DOMAIN)
+                entities += [
+                    MyJDownloaderPauseSwitch(hub, device_id),
+                    MyJDownloaderLimitSwitch(hub, device_id),
+                ]
+
+        if entities:
+            async_add_entities(entities, True)
+
+    entry.async_on_unload(
+        async_dispatcher_connect(
+            hass, f"{MYJDOWNLOADER_DOMAIN}_new_devices", async_add_switch
+        )
+    )
+
+    async_add_switch(hub.devices)
 
 
 class MyJDownloaderSwitch(MyJDownloaderDeviceEntity, SwitchEntity):
@@ -48,8 +70,8 @@ class MyJDownloaderSwitch(MyJDownloaderDeviceEntity, SwitchEntity):
 
     @property
     def unique_id(self) -> str:
-        """Return the unique ID for this sensor."""
-        return "_".join([DOMAIN, self._name, "switch", self._key])
+        """Return the unique ID for this switch."""
+        return "_".join([MYJDOWNLOADER_DOMAIN, self._name, DOMAIN, self._key])
 
     @property
     def is_on(self) -> bool:

@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import asyncio
+from collections import defaultdict
 import datetime
 import logging
+from typing import Dict
 
-from myjdapi.myjdapi import Myjdapi, MYJDException
+from myjdapi.myjdapi import Jddevice, Myjdapi, MYJDException
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.util import Throttle
 
 from .const import (
@@ -39,7 +42,8 @@ class MyJDownloaderHub:
         self._sem = asyncio.Semaphore(1)  # API calls need to be sequential
         self.myjd = Myjdapi()
         self.myjd.set_app_key(MYJDAPI_APP_KEY)
-        self.devices = {}  # store devices currently online
+        self._devices = {}  # type: Dict[str, Jddevice]
+        self.devices_platforms = defaultdict(lambda: set())  # type: Dict[str, set]
 
     @Throttle(datetime.timedelta(seconds=SCAN_INTERVAL_SECONDS))
     async def authenticate(self, email, password) -> bool:
@@ -70,35 +74,44 @@ class MyJDownloaderHub:
         await self.async_query(self.myjd.update_devices)
 
         # add Jddevice objects for all online JDownloaders, if not exist
+        new_devices = {}
         available_device_infos = await self.async_query(self.myjd.list_devices)
         for device_info in available_device_infos:
-            if not device_info["id"] in self.devices.keys():
+            if not device_info["id"] in self._devices.keys():
                 _LOGGER.debug("JDownloader (%s) is online", device_info["name"])
-                self.devices.update(
+                new_devices.update(
                     {
                         device_info["id"]: await self.async_query(
                             self.myjd.get_device, None, device_info["id"]
                         )
                     }
                 )
-                # TODO create new set of entities for that device, if they don't exist
+        if new_devices:
+            self._devices.update(new_devices)
+            async_dispatcher_send(self._hass, f"{DOMAIN}_new_devices")
 
         # remove JDownloader objects, that are not online anymore
         unavailable_device_ids = [
             device_id
-            for device_id in self.devices.keys()
+            for device_id in self._devices.keys()
             if device_id not in [device["id"] for device in available_device_infos]
         ]
         for device_id in unavailable_device_ids:
-            _LOGGER.debug("JDownloader (%s) is offline", self.devices[device_id].name)
-            del self.devices[device_id]
+            _LOGGER.debug("JDownloader (%s) is offline", self._devices[device_id].name)
+            # del self._devices[device_id]
+            # del self.devices_platforms[device_id]
 
-        return self.devices
+        return self._devices
+
+    @property
+    def devices(self):
+        """Get dictionary of device ids and objects."""
+        return self._devices
 
     def get_device(self, device_id):
         """Return an online device or raise Exception."""
         try:
-            return self.devices[device_id]
+            return self._devices[device_id]
         except Exception as ex:
             raise Exception(f"JDownloader ({device_id}) not online") from ex
 

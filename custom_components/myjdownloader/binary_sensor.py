@@ -4,11 +4,18 @@ import datetime
 
 from homeassistant.components.binary_sensor import (
     DEVICE_CLASS_PROBLEM,
+    DOMAIN,
     BinarySensorEntity,
 )
+from homeassistant.core import callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from . import MyJDownloaderHub
-from .const import DATA_MYJDOWNLOADER_CLIENT, DOMAIN, SCAN_INTERVAL_SECONDS
+from .const import (
+    DATA_MYJDOWNLOADER_CLIENT,
+    DOMAIN as MYJDOWNLOADER_DOMAIN,
+    SCAN_INTERVAL_SECONDS,
+)
 from .entities import MyJDownloaderDeviceEntity
 
 SCAN_INTERVAL = datetime.timedelta(seconds=SCAN_INTERVAL_SECONDS)
@@ -16,13 +23,29 @@ SCAN_INTERVAL = datetime.timedelta(seconds=SCAN_INTERVAL_SECONDS)
 
 async def async_setup_entry(hass, entry, async_add_entities, discovery_info=None):
     """Set up the binary sensor using config entry."""
-    dev = []
-    hub = hass.data[DOMAIN][entry.entry_id][DATA_MYJDOWNLOADER_CLIENT]
-    for device_id in hub.devices.keys():
-        dev += [
-            MyJDownloaderUpdateAvailableSensor(hub, device_id),
-        ]
-    async_add_entities(dev, True)
+    hub = hass.data[MYJDOWNLOADER_DOMAIN][entry.entry_id][DATA_MYJDOWNLOADER_CLIENT]
+
+    @callback
+    def async_add_binary_sensor(devices=hub.devices):
+        entities = []
+
+        for device_id in devices.keys():
+            if DOMAIN not in hub.devices_platforms[device_id]:
+                hub.devices_platforms[device_id].add(DOMAIN)
+                entities += [
+                    MyJDownloaderUpdateAvailableSensor(hub, device_id),
+                ]
+
+        if entities:
+            async_add_entities(entities, True)
+
+    entry.async_on_unload(
+        async_dispatcher_connect(
+            hass, f"{MYJDOWNLOADER_DOMAIN}_new_devices", async_add_binary_sensor
+        )
+    )
+
+    async_add_binary_sensor(hub.devices)
 
 
 class MyJDownloaderBinarySensor(MyJDownloaderDeviceEntity, BinarySensorEntity):
@@ -38,21 +61,20 @@ class MyJDownloaderBinarySensor(MyJDownloaderDeviceEntity, BinarySensorEntity):
         device_class: str = None,
         enabled_default: bool = True,
     ) -> None:
-        """Initialize MyJDownloader sensor."""
+        """Initialize MyJDownloader binary sensor."""
         self._state = None
         self._device_class = device_class
         self.measurement = measurement
-
         super().__init__(hub, device_id, name_template, icon, enabled_default)
 
     @property
     def unique_id(self) -> str:
-        """Return the unique ID for this sensor."""
+        """Return the unique ID for this binary sensor."""
         return "_".join(
             [
-                DOMAIN,
+                MYJDOWNLOADER_DOMAIN,
                 self._name,
-                "binary_sensor",
+                DOMAIN,
                 self.measurement,
             ]
         )
@@ -76,7 +98,7 @@ class MyJDownloaderUpdateAvailableSensor(MyJDownloaderBinarySensor):
         hub: MyJDownloaderHub,
         device_id: str,
     ) -> None:
-        """Initialize MyJDownloader sensor."""
+        """Initialize MyJDownloader binary sensor."""
         super().__init__(
             hub,
             device_id,
