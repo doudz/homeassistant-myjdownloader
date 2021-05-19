@@ -8,6 +8,7 @@ import datetime
 import logging
 from typing import Dict
 
+from myjdapi.exception import MYJDConnectionException
 from myjdapi.myjdapi import Jddevice, Myjdapi, MYJDException
 
 from homeassistant.config_entries import ConfigEntry
@@ -63,9 +64,18 @@ class MyJDownloaderHub:
         """Perform query while ensuring sequentiality of API calls."""
         # TODO catch exceptions, retry once with reconnect, then connect, then reauth if invalid_auth
         # TODO maybe with self.myjd.is_connected()
-        async with self._sem:
-            return await self._hass.async_add_executor_job(func, *args, **kwargs)
+        try:
+            async with self._sem:
+                return await self._hass.async_add_executor_job(func, *args, **kwargs)
+        except MYJDConnectionException as ex:
+            # update list of online devices out of order if device is not reachable
+            await self.async_update_devices(no_throttle=True)
+            raise ex
 
+    @Throttle(
+        datetime.timedelta(seconds=SCAN_INTERVAL_SECONDS),
+        limit_no_throttle=datetime.timedelta(seconds=5),
+    )
     async def async_update_devices(self):
         """Update list of online devices."""
 
@@ -98,8 +108,10 @@ class MyJDownloaderHub:
         ]
         for device_id in unavailable_device_ids:
             _LOGGER.debug("JDownloader (%s) is offline", self._devices[device_id].name)
-            # del self._devices[device_id]
-            # del self.devices_platforms[device_id]
+            del self._devices[device_id]
+
+        # TODO additionally trigger update of sensor for number of devices immediately
+        # http://dev-docs.home-assistant.io/en/master/api/helpers.html#module-homeassistant.helpers.dispatcher
 
         return self._devices
 

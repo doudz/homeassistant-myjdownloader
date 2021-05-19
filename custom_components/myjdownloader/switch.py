@@ -6,7 +6,6 @@ import logging
 from myjdapi.myjdapi import MYJDException
 
 from homeassistant.components.switch import DOMAIN, SwitchEntity
-from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
@@ -138,11 +137,7 @@ class MyJDownloaderPauseSwitch(MyJDownloaderSwitch):
         """Update MyJDownloader entity."""
         device = self.hub.get_device(self._device_id)
         status = await self.hub.async_query(device.downloadcontroller.get_current_state)
-        if not status:
-            current_state = STATE_UNKNOWN
-        else:
-            current_state = status.lower() == "pause"
-        self._state = current_state
+        self._state = status.lower() == "pause"
 
 
 class MyJDownloaderLimitSwitch(MyJDownloaderSwitch):
@@ -175,11 +170,6 @@ class MyJDownloaderLimitSwitch(MyJDownloaderSwitch):
     async def _myjdownloader_update(self) -> None:
         """Update MyJDownloader entity."""
         device = self.hub.get_device(self._device_id)
-        try:
-            self._state = await self.hub.async_query(
-                device.toolbar.status_downloadSpeedLimit
-            )
-        except TypeError as ex:
-            # gets raised when device is not online anymore
-            self._state = STATE_UNKNOWN
-            raise Exception() from ex
+        self._state = await self.hub.async_query(
+            device.toolbar.status_downloadSpeedLimit
+        )

@@ -3,6 +3,8 @@
 import logging
 from string import Template
 
+from myjdapi.exception import MYJDConnectionException
+
 from homeassistant.helpers.entity import Entity
 
 from . import MyJDownloaderHub
@@ -56,6 +58,8 @@ class MyJDownloaderEntity(Entity):
         try:
             await self._myjdownloader_update()
             self._available = True
+        except MYJDConnectionException:
+            self._available = False
         except Exception:
             if self._available:
                 _LOGGER.debug(
@@ -99,6 +103,14 @@ class MyJDownloaderDeviceEntity(MyJDownloaderEntity):
             "sw_version": None,  # TODO add version method to upstream Jddevice
             "entry_type": "service",
         }
+
+    async def async_update(self) -> None:
+        """Update MyJDownloader entity."""
+        if self._device_id in self.hub.devices:
+            self._available = True
+            await super().async_update()
+        else:
+            self._available = False
 
     # Services are registered in setup of sensor platform for each JDownloader.
     async def restart_and_update(self):

@@ -3,7 +3,7 @@
 import datetime
 
 from homeassistant.components.sensor import DOMAIN, SensorEntity
-from homeassistant.const import DATA_RATE_MEGABYTES_PER_SECOND, STATE_UNKNOWN
+from homeassistant.const import DATA_RATE_MEGABYTES_PER_SECOND
 from homeassistant.core import callback
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -185,7 +185,8 @@ class MyJDownloaderJDownloadersOnlineSensor(MyJDownloaderSensor):
 
     async def _myjdownloader_update(self) -> None:
         """Update MyJDownloader entity."""
-        self.devices = await self.hub.async_update_devices()
+        await self.hub.async_update_devices()
+        self.devices = self.hub.devices
         self._state = len(self.devices)
 
     @property
@@ -250,11 +251,7 @@ class MyJDownloaderPackagesSensor(MyJDownloaderDeviceSensor):
         self._packages_list = await self.hub.async_query(
             device.downloads.query_packages
         )
-        package_list = self._packages_list
-        if not package_list:
-            self._state = STATE_UNKNOWN
-        else:
-            self._state = len(package_list)
+        self._state = len(self._packages_list)
 
     @property
     def extra_state_attributes(self):
@@ -286,11 +283,7 @@ class MyJDownloaderLinksSensor(MyJDownloaderDeviceSensor):
         """Update MyJDownloader entity."""
         device = self.hub.get_device(self._device_id)
         self._links_list = await self.hub.async_query(device.downloads.query_links)
-        links_list = self._links_list
-        if not links_list:
-            self._state = STATE_UNKNOWN
-        else:
-            self._state = len(links_list)
+        self._state = len(self._links_list)
 
     @property
     def extra_state_attributes(self):
@@ -332,8 +325,4 @@ class MyJDownloaderStatusSensor(MyJDownloaderDeviceSensor):
         """Update MyJDownloader entity."""
         device = self.hub.get_device(self._device_id)
         status = await self.hub.async_query(device.downloadcontroller.get_current_state)
-        if not status:
-            status = STATE_UNKNOWN
-        else:
-            status = status.lower().replace("_state", "")  # stopped_state -> stopped
-        self._state = status
+        self._state = status.lower().replace("_state", "")  # stopped_state -> stopped
