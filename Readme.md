@@ -14,6 +14,8 @@ A rewrite of the awesome [MyJDownloader integration by doudz](https://github.com
 
 Add this repository to HACS, install it, then go to Configuration > Integrations > Add Integration > Choose "MyJDownloader" and enter your email address and password.
 
+**Note:** Do not disable the `sensor.jdownloaders_online` entity, as it is responsible for checking for new JDownloaders which become online.
+
 ## Features
 
 **Sensor**
