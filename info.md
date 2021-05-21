@@ -1,13 +1,5 @@
-A simple sensor for MyJDownloader state
+# MyJDownloader Integration for Home Assistant
 
-# Configuration
+## Configuration
 
-```
-sensor:
-  - platform: myjdownloader
-    email: myname@email.com
-    password: mypassword
-    name: JDownloader@doudz
-```
-
-`name` is optionnal, if not provided it will generated as many as found JDownloader device
+Add this repository to HACS, install it, then go to Configuration > Integrations > Add Integration > Choose "MyJDownloader" and enter your email address and password. Your currently available JDownloaders should appear as devices.
