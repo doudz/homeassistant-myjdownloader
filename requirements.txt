@@ -1,2 +1,2 @@
 homeassistant>=2021.5.0
-myjdapi==1.0.6
+myjdapi==1.1.0
