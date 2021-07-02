@@ -9,7 +9,20 @@
 
 ## Configuration
 
-Add this repository to HACS, install it, then go to Configuration > Integrations > Add Integration > Choose "MyJDownloader" and enter your email address and password.
+Add this repository to HACS, install this integration and restart Home Assistant. Adding MyJDownloader to your Home Assistant instance can be done via the user interface, by using this My button:
+
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=myjdownloader)
+
+<details>
+  <summary>Manual configuration steps</summary>
+
+- Browse to your Home Assistant instance.
+- In the sidebar click on [Configuration](https://my.home-assistant.io/redirect/config).
+- From the configuration menu select: [Integrations](https://my.home-assistant.io/redirect/integrations).
+- In the bottom right, click on the [Add Integration](https://my.home-assistant.io/redirect/config_flow_start/?domain=myjdownloader) button.
+- From the list, search and select "MyJDownloader".
+- Follow the instruction on screen to complete the set up.
+</details>
 
 **Note:** Do not disable the `sensor.jdownloaders_online` entity, as it is responsible for checking for new JDownloaders which become online.
 
