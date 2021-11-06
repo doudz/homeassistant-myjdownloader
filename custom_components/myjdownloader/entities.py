@@ -5,7 +5,7 @@ from string import Template
 
 from myjdapi.exception import MYJDConnectionException
 
-from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.entity import DeviceInfo, Entity
 
 from . import MyJDownloaderHub
 from .const import DOMAIN
@@ -93,16 +93,16 @@ class MyJDownloaderDeviceEntity(MyJDownloaderEntity):
         super().__init__(hub, name, icon, enabled_default)
 
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo:
         """Return device information about this MyJDownloader instance."""
-        return {
-            "identifiers": {(DOMAIN, self._device_id)},
-            "name": f"JDownloader {self._device_name}",
-            "manufacturer": "AppWork GmbH",
-            "model": self._device_type,
-            "sw_version": None,  # TODO add version method to upstream Jddevice
-            "entry_type": "service",
-        }
+        return DeviceInfo(
+            configuration_url=f"https://my.jdownloader.org/?deviceId={self._device_id}#webinterface:downloads",
+            identifiers={(DOMAIN, self._device_id)},
+            name=f"JDownloader {self._device_name}",
+            manufacturer="AppWork GmbH",
+            model=self._device_type,
+            entry_type="service",
+        )
 
     async def async_update(self) -> None:
         """Update MyJDownloader entity."""
