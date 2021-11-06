@@ -248,7 +248,7 @@ class MyJDownloaderPackagesSensor(MyJDownloaderDeviceSensor):
         device_id: str,
     ) -> None:
         """Initialize MyJDownloader sensor."""
-        self._download_list = []
+        self._packages_list = []
         super().__init__(
             hub,
             device_id,
@@ -283,7 +283,7 @@ class MyJDownloaderLinksSensor(MyJDownloaderDeviceSensor):
         device_id: str,
     ) -> None:
         """Initialize MyJDownloader sensor."""
-        self._download_list = []
+        self._links_list = []
         super().__init__(
             hub,
             device_id,
