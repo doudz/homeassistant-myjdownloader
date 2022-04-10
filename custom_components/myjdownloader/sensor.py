@@ -121,13 +121,13 @@ class MyJDownloaderDeviceSensor(MyJDownloaderDeviceEntity, SensorEntity):
         )
 
     @property
-    def state(self) -> str:
-        """Return the state of the sensor."""
+    def native_value(self) -> str:
+        """Return the native value of the sensor."""
         return self._state
 
     @property
-    def unit_of_measurement(self) -> str:
-        """Return the unit this state is expressed in."""
+    def native_unit_of_measurement(self) -> str:
+        """Return the unit this entity's native value is expressed in."""
         return self._unit_of_measurement
 
     @property
