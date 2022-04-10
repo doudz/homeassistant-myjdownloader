@@ -4,8 +4,8 @@ from __future__ import annotations
 import datetime
 
 from homeassistant.components.binary_sensor import (
-    DEVICE_CLASS_UPDATE,
     DOMAIN,
+    BinarySensorDeviceClass,
     BinarySensorEntity,
 )
 from homeassistant.const import ENTITY_CATEGORY_DIAGNOSTIC
@@ -110,7 +110,7 @@ class MyJDownloaderUpdateAvailableSensor(MyJDownloaderBinarySensor):
             "JDownloader $device_name Update Available",
             None,
             "update_available",
-            DEVICE_CLASS_UPDATE,
+            BinarySensorDeviceClass.UPDATE,
             ENTITY_CATEGORY_DIAGNOSTIC,
         )
 
