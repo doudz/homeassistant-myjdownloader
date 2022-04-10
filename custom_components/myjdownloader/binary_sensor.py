@@ -8,9 +8,9 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
-from homeassistant.const import ENTITY_CATEGORY_DIAGNOSTIC
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.entity import EntityCategory
 
 from . import MyJDownloaderHub
 from .const import (
@@ -111,7 +111,7 @@ class MyJDownloaderUpdateAvailableSensor(MyJDownloaderBinarySensor):
             None,
             "update_available",
             BinarySensorDeviceClass.UPDATE,
-            ENTITY_CATEGORY_DIAGNOSTIC,
+            EntityCategory.DIAGNOSTIC,
         )
 
     async def _myjdownloader_update(self) -> None:
