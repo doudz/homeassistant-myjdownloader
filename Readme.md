@@ -36,7 +36,11 @@ Add this repository to HACS, install this integration and restart Home Assistant
 
 **Binary Sensor**
 
-- update available
+- update available (deprecated, use designated update entity)
+
+**Update**
+
+- update to latest version
 
 **Switch**
 
