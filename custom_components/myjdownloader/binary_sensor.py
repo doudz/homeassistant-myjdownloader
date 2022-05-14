@@ -58,10 +58,10 @@ class MyJDownloaderBinarySensor(MyJDownloaderDeviceEntity, BinarySensorEntity):
         hub: MyJDownloaderHub,
         device_id: str,
         name_template: str,
-        icon: str,
+        icon: str | None,
         measurement: str,
         device_class: str = None,
-        entity_category: str | None = None,
+        entity_category: EntityCategory | None = None,
         enabled_default: bool = True,
     ) -> None:
         """Initialize MyJDownloader binary sensor."""
@@ -85,12 +85,12 @@ class MyJDownloaderBinarySensor(MyJDownloaderDeviceEntity, BinarySensorEntity):
         )
 
     @property
-    def is_on(self) -> bool:
+    def is_on(self) -> bool | None:
         """Return the state."""
         return self._state
 
     @property
-    def device_class(self) -> str:
+    def device_class(self) -> str | None:
         """Return the device class."""
         return self._device_class
 

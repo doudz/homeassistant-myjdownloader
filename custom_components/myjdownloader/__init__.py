@@ -11,6 +11,9 @@ from typing import Dict
 from myjdapi.exception import MYJDConnectionException
 from myjdapi.myjdapi import Jddevice, Myjdapi, MYJDException
 
+from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
+from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
+from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
@@ -31,7 +34,7 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["sensor", "binary_sensor", "switch"]
+PLATFORMS = [SENSOR_DOMAIN, BINARY_SENSOR_DOMAIN, SWITCH_DOMAIN]
 
 
 class MyJDownloaderHub:
@@ -76,7 +79,7 @@ class MyJDownloaderHub:
         datetime.timedelta(seconds=SCAN_INTERVAL_SECONDS),
         limit_no_throttle=datetime.timedelta(seconds=5),
     )
-    async def async_update_devices(self):
+    async def async_update_devices(self, *args, **kwargs):
         """Update list of online devices."""
 
         # We need to reconnect to the API to query the list of active JDownloaders
@@ -87,7 +90,7 @@ class MyJDownloaderHub:
         new_devices = {}
         available_device_infos = await self.async_query(self.myjd.list_devices)
         for device_info in available_device_infos:
-            if not device_info["id"] in self._devices.keys():
+            if not device_info["id"] in self._devices:
                 _LOGGER.debug("JDownloader (%s) is online", device_info["name"])
                 new_devices.update(
                     {
@@ -103,7 +106,7 @@ class MyJDownloaderHub:
         # remove JDownloader objects, that are not online anymore
         unavailable_device_ids = [
             device_id
-            for device_id in self._devices.keys()
+            for device_id in self._devices
             if device_id not in [device["id"] for device in available_device_infos]
         ]
         for device_id in unavailable_device_ids:
