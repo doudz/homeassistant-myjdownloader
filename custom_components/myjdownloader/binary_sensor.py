@@ -112,6 +112,7 @@ class MyJDownloaderUpdateAvailableSensor(MyJDownloaderBinarySensor):
             "update_available",
             BinarySensorDeviceClass.UPDATE,
             EntityCategory.DIAGNOSTIC,
+            False,  # binary sensor for update is deprecated
         )
 
     async def _myjdownloader_update(self) -> None:

@@ -112,6 +112,7 @@ class MyJDownloaderDeviceEntity(MyJDownloaderEntity):
             manufacturer="AppWork GmbH",
             model=self._device_type,
             entry_type=DeviceEntryType.SERVICE,
+            # sw_version=self._sw_version # Todo await self.hub.async_query(device.jd.get_core_revision)
         )
 
     async def async_update(self) -> None:
