@@ -7,6 +7,6 @@
   "requirements": ["myjdapi==1.1.6"],
   "dependencies": [],
   "codeowners": ["@doudz", "@oribafi"],
-  "version": "2.3.1",
+  "version": "2.3.2",
   "iot_class": "cloud_polling"
 }
