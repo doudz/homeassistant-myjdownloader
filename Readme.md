@@ -1,7 +1,7 @@
 # MyJDownloader Integration for Home Assistant
 
 ![Tests](https://github.com/doudz/homeassistant-myjdownloader/workflows/Tests/badge.svg)
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 
 **This is still beta! Feedback, bug reports and contributions welcome!**
 
