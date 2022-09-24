@@ -49,10 +49,10 @@ Add this repository to HACS, install this integration and restart Home Assistant
 
 **Service**
 
-- `myjdwonloader.run_update_check`
-- `myjdwonloader.restart_and_update`
-- `myjdwonloader.start_downloads`
-- `myjdwonloader.stop_downloads`
+- `myjdownloader.run_update_check`
+- `myjdownloader.restart_and_update`
+- `myjdownloader.start_downloads`
+- `myjdownloader.stop_downloads`
 
 ## Known Issues
 
