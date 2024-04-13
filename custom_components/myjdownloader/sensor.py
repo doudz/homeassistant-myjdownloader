@@ -4,7 +4,7 @@ from __future__ import annotations
 import datetime
 
 from homeassistant.components.sensor import DOMAIN, SensorEntity, SensorStateClass
-from homeassistant.const import DATA_RATE_MEGABYTES_PER_SECOND
+from homeassistant.const import UnitOfDataRate
 from homeassistant.core import callback
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -230,7 +230,7 @@ class MyJDownloaderDownloadSpeedSensor(MyJDownloaderDeviceSensor):
             "JDownloader $device_name Download Speed",
             "mdi:download",
             "download_speed",
-            DATA_RATE_MEGABYTES_PER_SECOND,
+            UnitOfDataRate.MEGABYTES_PER_SECOND,
             SensorStateClass.MEASUREMENT,
         )
 
