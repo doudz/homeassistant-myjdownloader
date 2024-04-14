@@ -34,6 +34,8 @@ Add this repository to HACS, install this integration and restart Home Assistant
 - number of links
 - number of packages
 
+Note: number of links/packages sensors contain state attributes that have information on ETA while downloading.
+
 **Binary Sensor**
 
 - update available (deprecated, use designated update entity)
