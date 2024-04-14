@@ -177,6 +177,5 @@ class MyJDownloaderDeviceEntity(MyJDownloaderEntity):
                 # sourceUrl
             }
         ]
-        _LOGGER.warning(params)
         device = self.hub.get_device(self._device_id)
         await self.hub.async_query(device.linkgrabber.add_links, params)
