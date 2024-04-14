@@ -55,6 +55,7 @@ Note: number of links/packages sensors contain state attributes that have inform
 - `myjdownloader.restart_and_update`
 - `myjdownloader.start_downloads`
 - `myjdownloader.stop_downloads`
+- `myjdownloader.add_links`
 
 Note: Only select a single _entity_ (e.g., the *_status entity) from the JDownloader when calling a service, not the JDownloader _device_.
 
