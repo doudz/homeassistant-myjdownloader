@@ -56,7 +56,10 @@ Note: number of links/packages sensors contain state attributes that have inform
 - `myjdownloader.start_downloads`
 - `myjdownloader.stop_downloads`
 
+Note: Only select a single _entity_ (e.g., the *_status entity) from the JDownloader when calling a service, not the JDownloader _device_.
+
 ## Known Issues
 
 - [ ] When using the pause switch, it might take a while for the status sensor to reflect the new pause state.
 - [ ] There is not much error handling yet, e.g. when you change your password, you need to remove and add the integration again.
+- [ ] Selecting a JDownloader device for a service target will call that service as many times as there are enabled entities for that device. This integration probably needs to be refactored in a way, that this is avoided e.g., with a designated `myjdwonloader.*` entity.
