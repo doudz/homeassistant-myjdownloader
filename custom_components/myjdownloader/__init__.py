@@ -36,7 +36,6 @@ _LOGGER = logging.getLogger(__name__)
 
 # For your initial PR, limit it to 1 platform.
 PLATFORMS: list[Platform] = [
-    Platform.BINARY_SENSOR,
     Platform.SENSOR,
     Platform.SWITCH,
     Platform.UPDATE,
