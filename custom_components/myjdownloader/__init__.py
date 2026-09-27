@@ -115,6 +115,29 @@ async def async_unload_entry(
     return unload_ok
 
 
+async def async_remove_config_entry_device(
+    hass: HomeAssistant,
+    entry: MyJDownloaderConfigEntry,
+    device_entry: dr.DeviceEntry,
+) -> bool:
+    """Allow removing JDownloaders that are not connected to MyJDownloader.
+
+    MyJDownloader only lists online JDownloaders, so an offline one might be
+    switched off or deleted. The user decides; online ones are kept.
+    """
+    coordinator = entry.runtime_data.coordinator
+    for domain, identifier in device_entry.identifiers:
+        if domain != DOMAIN or identifier.startswith("account_"):
+            continue
+        state = coordinator.data.devices.get(identifier)
+        if state is not None and state.online:
+            return False
+        coordinator.async_forget_device(identifier)
+        return True
+    # The account device is removed together with the config entry.
+    return False
+
+
 async def async_migrate_entry(
     hass: HomeAssistant, entry: MyJDownloaderConfigEntry
 ) -> bool:

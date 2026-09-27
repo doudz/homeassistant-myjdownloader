@@ -132,6 +132,9 @@ class MyJDownloaderCoordinator(DataUpdateCoordinator[MyJDownloaderData]):
         # unavailable instead of disappearing.
         self._known: dict[str, tuple[str, str]] = {}
         self._backoff_level = 0
+        # How often each JDownloader was removed by the user, so platforms
+        # recreate its entities when it comes back.
+        self.device_removals: dict[str, int] = {}
 
     async def _async_setup(self) -> None:
         """Log in and restore the JDownloaders known from earlier runs."""
@@ -189,6 +192,7 @@ class MyJDownloaderCoordinator(DataUpdateCoordinator[MyJDownloaderData]):
                     state, previous.get(device_id), wanted
                 )
             self._log_availability(state, previous.get(device_id))
+            self._async_update_sw_version(state)
             devices[device_id] = state
         self._backoff_level = 0
         return MyJDownloaderData(devices=devices)
@@ -205,6 +209,31 @@ class MyJDownloaderCoordinator(DataUpdateCoordinator[MyJDownloaderData]):
             translation_placeholders={"minutes": str(retry_after // 60)},
             retry_after=retry_after,
         )
+
+    def _async_update_sw_version(self, state: DeviceState) -> None:
+        """Keep the core revision in the device registry up to date."""
+        if state.core_revision is None:
+            return
+        device_registry = dr.async_get(self.hass)
+        sw_version = str(state.core_revision)
+        # Devices are created by their entities after the first refresh,
+        # which set the initial sw_version themselves.
+        if (
+            device := device_registry.async_get_device_by_identifier(
+                (DOMAIN, state.device_id), self.config_entry.entry_id
+            )
+        ) and device.sw_version != sw_version:
+            device_registry.async_update_device(device.id, sw_version=sw_version)
+
+    def async_forget_device(self, device_id: str) -> None:
+        """Stop tracking a JDownloader removed by the user.
+
+        The next refresh drops it from the data; Home Assistant removes its
+        entities before that. It is tracked again as soon as MyJDownloader
+        lists it as online.
+        """
+        self._known.pop(device_id, None)
+        self.device_removals[device_id] = self.device_removals.get(device_id, 0) + 1
 
     async def _async_fetch_device(
         self,

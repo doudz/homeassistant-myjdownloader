@@ -26,18 +26,22 @@ def async_add_device_entities(
     factory: Callable[[str], Iterable[Entity]],
 ) -> None:
     """Add entities for every JDownloader, including ones appearing later."""
-    known: set[str] = set()
+    # JDownloader id -> removal count the entities were created for. A device
+    # removed by the user gets new entities when it comes back.
+    known: dict[str, int] = {}
 
     @callback
     def _async_add_new() -> None:
+        removals = coordinator.device_removals
         new = [
             device_id
             for device_id in coordinator.data.devices
-            if device_id not in known
+            if known.get(device_id) != removals.get(device_id, 0)
         ]
         if not new:
             return
-        known.update(new)
+        for device_id in new:
+            known[device_id] = removals.get(device_id, 0)
         async_add_entities(
             [entity for device_id in new for entity in factory(device_id)]
         )
@@ -100,10 +104,17 @@ class MyJDownloaderDeviceEntity(MyJDownloaderEntity):
             name=f"JDownloader {state.name}",
             manufacturer="AppWork GmbH",
             model=state.device_type,
+            sw_version=str(state.core_revision) if state.core_revision else None,
             entry_type=DeviceEntryType.SERVICE,
             configuration_url=f"https://my.jdownloader.org/?deviceId={device_id}#webinterface:downloads",
             via_device_id=coordinator.config_entry.runtime_data.account_device_id,
         )
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Skip updates for a JDownloader that is no longer tracked."""
+        if self._device_id in self.coordinator.data.devices:
+            super()._handle_coordinator_update()
 
     @property
     def device_state(self) -> DeviceState:
