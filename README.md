@@ -69,7 +69,7 @@ Home Assistant does not run on Windows, so tests run in a Linux container
 
 ```bash
 scripts/test          # ruff, formatting and pytest against the latest supported Home Assistant
-scripts/test --min    # tests against the minimum supported Home Assistant (2026.3)
+scripts/test --min    # tests against the minimum supported Home Assistant (2026.8)
 scripts/test mypy     # any command inside the test container
 ```
 

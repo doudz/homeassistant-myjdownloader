@@ -36,7 +36,7 @@ jobs:
           - ha: latest
             phcc: ""
           - ha: minimum
-            phcc: "0.13.319" # homeassistant 2026.3.3
+            phcc: "0.13.357" # homeassistant 2026.8.3
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.2.0
