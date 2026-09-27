@@ -9,6 +9,6 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/doudz/homeassistant-myjdownloader/issues",
   "loggers": ["myjdapi"],
-  "requirements": ["myjdapi==1.1.10"],
+  "requirements": ["myjdapi==1.1.7"],
   "version": "3.0.0.dev1"
 }
