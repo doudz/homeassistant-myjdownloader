@@ -6,30 +6,31 @@ from typing import Any
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryError
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import (
+    config_validation as cv,
+    device_registry as dr,
+    entity_registry as er,
+)
+from homeassistant.helpers.typing import ConfigType
 
 from .api import MyJDownloaderClient
 from .config_flow import account_id
-from .const import (
-    DOMAIN,
-    SERVICE_ADD_LINKS,
-    SERVICE_RESTART_AND_UPDATE,
-    SERVICE_RUN_UPDATE_CHECK,
-    SERVICE_START_DOWNLOADS,
-    SERVICE_STOP_DOWNLOADS,
-    TITLE,
-)
+from .const import DOMAIN, TITLE
 from .coordinator import (
     JDownloaderLatestVersionCoordinator,
     MyJDownloaderConfigEntry,
     MyJDownloaderCoordinator,
     MyJDownloaderRuntimeData,
 )
+from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
 
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
+    Platform.BUTTON,
     Platform.SENSOR,
     Platform.SWITCH,
     Platform.UPDATE,
@@ -47,6 +48,12 @@ LEGACY_UNIQUE_ID_SUFFIXES = {
     "_update": "update",
 }
 LEGACY_ONLINE_COUNT_SUFFIX = "_sensor_number"
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up the MyJDownloader actions."""
+    async_setup_services(hass)
+    return True
 
 
 async def async_setup_entry(
@@ -102,16 +109,6 @@ async def async_unload_entry(
     hass: HomeAssistant, entry: MyJDownloaderConfigEntry
 ) -> bool:
     """Unload a config entry."""
-    # Registered by the sensor platform until the services are reworked.
-    for service in (
-        SERVICE_RESTART_AND_UPDATE,
-        SERVICE_RUN_UPDATE_CHECK,
-        SERVICE_START_DOWNLOADS,
-        SERVICE_STOP_DOWNLOADS,
-        SERVICE_ADD_LINKS,
-    ):
-        hass.services.async_remove(DOMAIN, service)
-
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         await entry.runtime_data.client.async_disconnect()

@@ -1,16 +1,41 @@
-"""Tests for the MyJDownloader entity services (until the Phase D rework)."""
+"""Tests for the MyJDownloader actions."""
 
 from unittest.mock import MagicMock
 
 from myjdapi import MYJDConnectionException
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+import voluptuous as vol
 
 from custom_components.myjdownloader.const import DOMAIN
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.helpers import device_registry as dr, issue_registry as ir
 
 STATUS = "sensor.jdownloader_mypc_status"
+
+JDOWNLOADER_ID = "af9d03a21ddb917492dc1af8a6427f11"
+
+
+def _get_jd_device_id(device_registry: dr.DeviceRegistry, entry_id: str) -> str:
+    """Return the HA device id of the test JDownloader."""
+    device = next(
+        d
+        for d in dr.async_entries_for_config_entry(device_registry, entry_id)
+        if (DOMAIN, JDOWNLOADER_ID) in d.identifiers
+    )
+    return device.id
+
+
+def _get_account_device_id(device_registry: dr.DeviceRegistry, entry_id: str) -> str:
+    """Return the HA device id of the account device."""
+    device = next(
+        d
+        for d in dr.async_entries_for_config_entry(device_registry, entry_id)
+        if (DOMAIN, f"account_{entry_id}") in d.identifiers
+    )
+    return device.id
+
 
 pytestmark = pytest.mark.usefixtures("init_integration")
 
@@ -78,3 +103,199 @@ async def test_service_error(
             DOMAIN, "start_downloads", {"entity_id": STATUS}, blocking=True
         )
     assert err.value.translation_key == "action_failed"
+
+
+async def test_add_links_device_id(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    mock_device: MagicMock,
+    device_registry: dr.DeviceRegistry,
+) -> None:
+    """Test add_links with device_id target and default priority."""
+    jd_device_id = _get_jd_device_id(device_registry, init_integration.entry_id)
+    await hass.services.async_call(
+        DOMAIN,
+        "add_links",
+        {"device_id": jd_device_id, "links": ["https://example.com/a.zip"]},
+        blocking=True,
+    )
+    mock_device.linkgrabber.add_links.assert_called_once_with(
+        [
+            {
+                "autoExtract": False,
+                "autostart": False,
+                "destinationFolder": None,
+                "downloadPassword": None,
+                "extractPassword": None,
+                "links": "https://example.com/a.zip",
+                "overwritePackagizerRules": False,
+                "packageName": None,
+                "priority": "DEFAULT",
+            }
+        ]
+    )
+
+
+async def test_targets_deduplicated(
+    hass: HomeAssistant, init_integration: MockConfigEntry, mock_device: MagicMock
+) -> None:
+    """Test entities belonging to the same JDownloader deduplicate calls."""
+    await hass.services.async_call(
+        DOMAIN,
+        "start_downloads",
+        {
+            "entity_id": [
+                "sensor.jdownloader_mypc_status",
+                "switch.jdownloader_mypc_pause",
+            ]
+        },
+        blocking=True,
+    )
+    mock_device.downloadcontroller.start_downloads.assert_called_once_with()
+
+
+async def test_deprecated_service_creates_issue(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    mock_device: MagicMock,
+    device_registry: dr.DeviceRegistry,
+    issue_registry: ir.IssueRegistry,
+) -> None:
+    """Test calling a deprecated service with device_id creates an issue."""
+    jd_device_id = _get_jd_device_id(device_registry, init_integration.entry_id)
+    await hass.services.async_call(
+        DOMAIN, "start_downloads", {"device_id": jd_device_id}, blocking=True
+    )
+    mock_device.downloadcontroller.start_downloads.assert_called_once_with()
+    issue = issue_registry.async_get_issue(DOMAIN, "deprecated_service_start_downloads")
+    assert issue is not None
+    # No entity-target issue since device_id was used
+    assert issue_registry.async_get_issue(DOMAIN, "deprecated_entity_target") is None
+
+
+async def test_entity_target_creates_issue(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    mock_device: MagicMock,
+    issue_registry: ir.IssueRegistry,
+) -> None:
+    """Test calling add_links with entity_id creates a deprecation issue."""
+    await hass.services.async_call(
+        DOMAIN,
+        "add_links",
+        {"entity_id": STATUS, "links": ["https://example.com/a.zip"]},
+        blocking=True,
+    )
+    issue = issue_registry.async_get_issue(DOMAIN, "deprecated_entity_target")
+    assert issue is not None
+
+
+async def test_add_links_unknown_device(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    """Test add_links raises ServiceValidationError for an unknown device_id."""
+    with pytest.raises(ServiceValidationError) as err:
+        await hass.services.async_call(
+            DOMAIN,
+            "add_links",
+            {"device_id": "does-not-exist", "links": ["https://example.com/a.zip"]},
+            blocking=True,
+        )
+    assert err.value.translation_key == "device_not_found"
+
+
+async def test_add_links_account_device(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    device_registry: dr.DeviceRegistry,
+) -> None:
+    """Test add_links raises ServiceValidationError for the account device."""
+    account_device_id = _get_account_device_id(
+        device_registry, init_integration.entry_id
+    )
+    with pytest.raises(ServiceValidationError) as err:
+        await hass.services.async_call(
+            DOMAIN,
+            "add_links",
+            {
+                "device_id": account_device_id,
+                "links": ["https://example.com/a.zip"],
+            },
+            blocking=True,
+        )
+    assert err.value.translation_key == "device_not_found"
+
+
+async def test_add_links_entity_not_found(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    """Test add_links raises ServiceValidationError for an entity of another integration."""
+    hass.states.async_set("sensor.other", "1")
+    with pytest.raises(ServiceValidationError) as err:
+        await hass.services.async_call(
+            DOMAIN,
+            "add_links",
+            {"entity_id": "sensor.other", "links": ["https://example.com/a.zip"]},
+            blocking=True,
+        )
+    assert err.value.translation_key == "entity_not_found"
+
+
+async def test_add_links_device_offline(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    mock_myjdapi: MagicMock,
+    device_registry: dr.DeviceRegistry,
+) -> None:
+    """Test add_links raises ServiceValidationError when the JDownloader is offline."""
+    jd_device_id = _get_jd_device_id(device_registry, init_integration.entry_id)
+    mock_myjdapi.list_devices.return_value = []
+    await init_integration.runtime_data.coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    with pytest.raises(ServiceValidationError) as err:
+        await hass.services.async_call(
+            DOMAIN,
+            "add_links",
+            {"device_id": jd_device_id, "links": ["https://example.com/a.zip"]},
+            blocking=True,
+        )
+    assert err.value.translation_key == "device_offline"
+
+
+async def test_add_links_entry_not_loaded(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    mock_device: MagicMock,
+    device_registry: dr.DeviceRegistry,
+) -> None:
+    """Test add_links raises ServiceValidationError when the entry is unloaded."""
+    jd_device_id = _get_jd_device_id(device_registry, init_integration.entry_id)
+    await hass.config_entries.async_unload(init_integration.entry_id)
+    await hass.async_block_till_done()
+
+    with pytest.raises(ServiceValidationError) as err:
+        await hass.services.async_call(
+            DOMAIN,
+            "add_links",
+            {"device_id": jd_device_id, "links": ["https://example.com/a.zip"]},
+            blocking=True,
+        )
+    assert err.value.translation_key == "entry_not_loaded"
+
+
+async def test_add_links_invalid_priority(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    """Test add_links raises vol.Invalid for an invalid priority value."""
+    with pytest.raises(vol.Invalid):
+        await hass.services.async_call(
+            DOMAIN,
+            "add_links",
+            {
+                "entity_id": STATUS,
+                "links": ["https://example.com/a.zip"],
+                "priority": "urgent",
+            },
+            blocking=True,
+        )

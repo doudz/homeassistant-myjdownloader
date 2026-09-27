@@ -1,36 +1,20 @@
-restart_and_update:
-  target:
-    entity:
-      integration: myjdownloader
-      domain: sensor
-run_update_check:
-  target:
-    entity:
-      integration: myjdownloader
-      domain: sensor
-start_downloads:
-  target:
-    entity:
-      integration: myjdownloader
-      domain: sensor
-stop_downloads:
-  target:
-    entity:
-      integration: myjdownloader
-      domain: sensor
 add_links:
-  target:
-    entity:
-      integration: myjdownloader
-      domain: sensor
   fields:
+    device_id:
+      required: true
+      selector:
+        device: &jdownloader_device
+          filter:
+            integration: myjdownloader
+          entity:
+            - integration: myjdownloader
+              domain: button
     links:
       required: true
-      example: "http://example.org/index.html"
+      example: "https://example.org/file.zip"
       selector:
         text:
           multiple: true
-          type: url
     autostart:
       required: false
       example: false
@@ -86,3 +70,27 @@ add_links:
       default: false
       selector:
         boolean:
+restart_and_update:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device: *jdownloader_device
+run_update_check:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device: *jdownloader_device
+start_downloads:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device: *jdownloader_device
+stop_downloads:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device: *jdownloader_device

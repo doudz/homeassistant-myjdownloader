@@ -4,8 +4,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-import voluptuous as vol
-
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -14,27 +12,9 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import UnitOfDataRate
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import (
-    ATTR_LINKS,
-    ATTR_PACKAGES,
-    FIELD_AUTO_EXTRACT,
-    FIELD_AUTOSTART,
-    FIELD_DESTINATION_FOLDER,
-    FIELD_DOWNLOAD_PASSWORD,
-    FIELD_EXTRACT_PASSWORD,
-    FIELD_LINKS,
-    FIELD_OVERWRITE_PACKAGIZER_RULES,
-    FIELD_PACKAGE_NAME,
-    FIELD_PRIORITY,
-    SERVICE_ADD_LINKS,
-    SERVICE_RESTART_AND_UPDATE,
-    SERVICE_RUN_UPDATE_CHECK,
-    SERVICE_START_DOWNLOADS,
-    SERVICE_STOP_DOWNLOADS,
-)
+from .const import ATTR_LINKS, ATTR_PACKAGES
 from .coordinator import (
     STATUS_MAP,
     DeviceState,
@@ -136,31 +116,6 @@ async def async_setup_entry(
         ),
     )
 
-    # Kept until the services are reworked, see modernization plan phase D.
-    platform = entity_platform.async_get_current_platform()
-    for service in (
-        SERVICE_RESTART_AND_UPDATE,
-        SERVICE_RUN_UPDATE_CHECK,
-        SERVICE_START_DOWNLOADS,
-        SERVICE_STOP_DOWNLOADS,
-    ):
-        platform.async_register_entity_service(service, None, f"async_{service}")
-    platform.async_register_entity_service(
-        SERVICE_ADD_LINKS,
-        {
-            vol.Required(FIELD_LINKS): cv.ensure_list(cv.url),
-            vol.Required(FIELD_PRIORITY): cv.string,
-            vol.Optional(FIELD_PACKAGE_NAME): cv.string,
-            vol.Optional(FIELD_AUTOSTART): cv.boolean,
-            vol.Optional(FIELD_AUTO_EXTRACT): cv.boolean,
-            vol.Optional(FIELD_EXTRACT_PASSWORD): cv.string,
-            vol.Optional(FIELD_DOWNLOAD_PASSWORD): cv.string,
-            vol.Optional(FIELD_DESTINATION_FOLDER): cv.string,
-            vol.Optional(FIELD_OVERWRITE_PACKAGIZER_RULES): cv.boolean,
-        },
-        "async_add_links",
-    )
-
 
 class MyJDownloaderAccountSensor(MyJDownloaderAccountEntity, SensorEntity):
     """Sensor of the MyJDownloader account."""
@@ -219,48 +174,3 @@ class MyJDownloaderSensor(MyJDownloaderDeviceEntity, SensorEntity):
         if self.entity_description.attributes_fn is None:
             return None
         return self.entity_description.attributes_fn(self.device_state)
-
-    async def async_restart_and_update(self) -> None:
-        """Restart and update JDownloader."""
-        await self.async_device_action(lambda d: d.update.restart_and_update())
-
-    async def async_run_update_check(self) -> None:
-        """Run the update check of JDownloader."""
-        await self.async_device_action(lambda d: d.update.run_update_check())
-
-    async def async_start_downloads(self) -> None:
-        """Start downloads."""
-        await self.async_device_action(lambda d: d.downloadcontroller.start_downloads())
-
-    async def async_stop_downloads(self) -> None:
-        """Stop downloads."""
-        await self.async_device_action(lambda d: d.downloadcontroller.stop_downloads())
-
-    async def async_add_links(
-        self,
-        links: list[str],
-        priority: str,
-        auto_extract: bool = False,
-        autostart: bool = False,
-        destination_folder: str | None = None,
-        download_password: str | None = None,
-        extract_password: str | None = None,
-        overwrite_packagizer_rules: bool = False,
-        package_name: str | None = None,
-    ) -> None:
-        """Add links to the LinkGrabber."""
-        # https://my.jdownloader.org/developers/index.html#tag_244
-        params = [
-            {
-                "autoExtract": auto_extract,
-                "autostart": autostart,
-                "destinationFolder": destination_folder,
-                "downloadPassword": download_password,
-                "extractPassword": extract_password,
-                "links": "\n".join(links),
-                "overwritePackagizerRules": overwrite_packagizer_rules,
-                "packageName": package_name,
-                "priority": priority.upper(),
-            }
-        ]
-        await self.async_device_action(lambda d: d.linkgrabber.add_links(params))

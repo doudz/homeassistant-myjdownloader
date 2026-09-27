@@ -10,5 +10,5 @@
   "issue_tracker": "https://github.com/doudz/homeassistant-myjdownloader/issues",
   "loggers": ["myjdapi"],
   "requirements": ["myjdapi==1.1.10"],
-  "version": "3.0.0.dev3"
+  "version": "3.0.0.dev4"
 }

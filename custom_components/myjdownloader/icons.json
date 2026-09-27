@@ -31,6 +31,17 @@
       "limit": {
         "default": "mdi:download-lock"
       }
+    },
+    "button": {
+      "start_downloads": {
+        "default": "mdi:play"
+      },
+      "stop_downloads": {
+        "default": "mdi:stop"
+      },
+      "run_update_check": {
+        "default": "mdi:update"
+      }
     }
   },
   "services": {

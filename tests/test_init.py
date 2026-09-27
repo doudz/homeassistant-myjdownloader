@@ -44,7 +44,8 @@ async def test_setup_and_unload(
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
     assert entry.state is ConfigEntryState.NOT_LOADED
-    assert not hass.services.has_service(DOMAIN, "add_links")
+    # Actions are registered in async_setup and stay registered.
+    assert hass.services.has_service(DOMAIN, "add_links")
     mock_myjdapi.disconnect.assert_called_once()
 
 

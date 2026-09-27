@@ -1,15 +1,17 @@
 """Data update coordinators for the MyJDownloader integration."""
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 import logging
 import re
 from typing import Any
 
 from aiohttp import ClientError
+from myjdapi.myjdapi import Jddevice
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -279,6 +281,31 @@ class MyJDownloaderCoordinator(DataUpdateCoordinator[MyJDownloaderData]):
             packages=packages,
             links=links,
         )
+
+    async def async_device_action(
+        self, device_id: str, func: Callable[[Jddevice], Any]
+    ) -> None:
+        """Run an action on a JDownloader and refresh the state afterwards."""
+        state = self.data.devices.get(device_id) if self.data else None
+        name = state.name if state else device_id
+        try:
+            await self.client.async_device_call(device_id, func)
+        except MyJDownloaderAuthError as err:
+            self.config_entry.async_start_reauth(self.hass)
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="auth_failed"
+            ) from err
+        except MyJDownloaderBackoffError as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="rate_limited_action"
+            ) from err
+        except MyJDownloaderError as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="action_failed",
+                translation_placeholders={"device": name},
+            ) from err
+        await self.async_request_refresh()
 
     @staticmethod
     def _log_availability(state: DeviceState, previous: DeviceState | None) -> None:

@@ -24,8 +24,6 @@ Add this repository to HACS, install this integration and restart Home Assistant
 - Follow the instruction on screen to complete the set up.
 </details>
 
-**Note:** Do not disable the `sensor.jdownloaders_online` entity, as it is responsible for checking for new JDownloaders which become online.
-
 ## Features
 
 **Sensor**
@@ -45,21 +43,34 @@ Note: number of links/packages sensors contain state attributes that have inform
 - pause downloads
 - limit download speed
 
-**Service**
+**Button**
 
-- `myjdownloader.run_update_check`
-- `myjdownloader.restart_and_update`
-- `myjdownloader.start_downloads`
-- `myjdownloader.stop_downloads`
-- `myjdownloader.add_links`
+- start downloads
+- stop downloads
+- run update check
 
-Note: Only select a single _entity_ (e.g., the *_status entity) from the JDownloader when calling a service, not the JDownloader _device_.
+**Binary sensor**
 
-## Known Issues
+- connected to MyJDownloader
 
-- [ ] When using the pause switch, it might take a while for the status sensor to reflect the new pause state.
-- [ ] There is not much error handling yet, e.g. when you change your password, you need to remove and add the integration again.
-- [ ] Selecting a JDownloader device for a service target will call that service as many times as there are enabled entities for that device. This integration probably needs to be refactored in a way, that this is avoided e.g., with a designated `myjdownloader.*` entity.
+**Actions**
+
+- `myjdownloader.add_links`: add links to the LinkGrabber of a JDownloader, selected with `device_id`.
+
+```yaml
+action: myjdownloader.add_links
+data:
+  device_id: 0123456789abcdef0123456789abcdef
+  links:
+    - https://example.com/file.zip
+  priority: default
+  autostart: true
+```
+
+The actions `myjdownloader.start_downloads`, `stop_downloads`, `run_update_check` and
+`restart_and_update` are deprecated since 3.0 and will be removed in 3.2. Use the buttons
+and the update entity instead. Targeting entities (`entity_id`) instead of a JDownloader
+(`device_id`) is deprecated as well; Home Assistant shows a repair issue when either is used.
 
 ## Development
 

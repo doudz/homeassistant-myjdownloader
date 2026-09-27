@@ -52,6 +52,17 @@
         "name": "Connected"
       }
     },
+    "button": {
+      "start_downloads": {
+        "name": "Start downloads"
+      },
+      "stop_downloads": {
+        "name": "Stop downloads"
+      },
+      "run_update_check": {
+        "name": "Run update check"
+      }
+    },
     "sensor": {
       "status": {
         "name": "Status",
@@ -103,11 +114,36 @@
     "action_failed": {
       "message": "The action on JDownloader {device} failed."
     },
+    "device_not_found": {
+      "message": "Device {device_id} is not a JDownloader of the MyJDownloader integration."
+    },
+    "entity_not_found": {
+      "message": "Entity {entity_id} does not belong to a JDownloader of the MyJDownloader integration."
+    },
+    "entry_not_loaded": {
+      "message": "The MyJDownloader account of {device} is not loaded."
+    },
+    "device_offline": {
+      "message": "JDownloader {device} is not connected to MyJDownloader."
+    },
     "duplicate_account": {
       "message": "Another entry already uses this MyJDownloader account. Delete this entry."
     },
     "rate_limited": {
       "message": "MyJDownloader asks to slow down, the next update follows in {minutes} minutes."
+    },
+    "rate_limited_action": {
+      "message": "MyJDownloader asks to slow down, try again in a few minutes."
+    }
+  },
+  "issues": {
+    "deprecated_service": {
+      "title": "Action {service} is deprecated",
+      "description": "The action `{service}` will be removed in version 3.2 of the MyJDownloader integration. Use {replacement} instead, and update your automations and scripts."
+    },
+    "deprecated_entity_target": {
+      "title": "Targeting entities in {service} is deprecated",
+      "description": "The action `{service}` was called with an entity as target. Select the JDownloader with the `device_id` field instead; entity targets will stop working in version 3.2."
     }
   },
   "selector": {
@@ -127,6 +163,10 @@
     "add_links": {
       "description": "Add links to LinkGrabber.",
       "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "The JDownloader to run the action on."
+        },
         "auto_extract": {
           "description": "Extract downloaded archives automatically?",
           "name": "Auto extract archives"
@@ -148,7 +188,7 @@
           "name": "Extract password"
         },
         "links": {
-          "description": "The link(s) to add.",
+          "description": "The links to add: http(s), magnet, ftp, container links or text containing links.",
           "name": "Links"
         },
         "overwrite_packagizer_rules": {
@@ -167,20 +207,44 @@
       "name": "Add links"
     },
     "restart_and_update": {
-      "description": "Restarts and updates JDownloader.",
-      "name": "Restart and update"
+      "name": "Restart and update (deprecated)",
+      "description": "Restarts and updates JDownloader. Deprecated, will be removed in 3.2. Use the install action of the update entity instead.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "The JDownloader to run the action on."
+        }
+      }
     },
     "run_update_check": {
-      "description": "Checks for updates.",
-      "name": "Run update check"
+      "name": "Run update check (deprecated)",
+      "description": "Checks for updates. Deprecated, will be removed in 3.2. Use the Run update check button instead.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "The JDownloader to run the action on."
+        }
+      }
     },
     "start_downloads": {
-      "description": "Starts downloading.",
-      "name": "Start"
+      "name": "Start downloads (deprecated)",
+      "description": "Starts downloading. Deprecated, will be removed in 3.2. Use the Start downloads button instead.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "The JDownloader to run the action on."
+        }
+      }
     },
     "stop_downloads": {
-      "description": "Stops downloading.",
-      "name": "Stop"
+      "name": "Stop downloads (deprecated)",
+      "description": "Stops downloading. Deprecated, will be removed in 3.2. Use the Stop downloads button instead.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "The JDownloader to run the action on."
+        }
+      }
     }
   }
 }
