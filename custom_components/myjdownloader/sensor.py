@@ -148,14 +148,7 @@ class MyJDownloaderDeviceSensor(MyJDownloaderDeviceEntity, SensorEntity):
     @property
     def unique_id(self) -> str:
         """Return the unique ID for this sensor."""
-        return "_".join(
-            [
-                MYJDOWNLOADER_DOMAIN,
-                self._name,
-                DOMAIN,
-                self.measurement,
-            ]
-        )
+        return f"{MYJDOWNLOADER_DOMAIN}_{self._name}_{DOMAIN}_{self.measurement}"
 
     @property
     def native_value(self) -> str | None:
@@ -197,14 +190,7 @@ class MyJDownloaderSensor(MyJDownloaderEntity):
     @property
     def unique_id(self) -> str:
         """Return the unique ID for this sensor."""
-        return "_".join(
-            [
-                MYJDOWNLOADER_DOMAIN,
-                self._name,
-                DOMAIN,
-                self.measurement,
-            ]
-        )
+        return f"{MYJDOWNLOADER_DOMAIN}_{self._name}_{DOMAIN}_{self.measurement}"
 
     @property
     def state(self) -> str | None:

@@ -1,0 +1,19 @@
+# Linux test environment. Home Assistant does not run on Windows (no fcntl),
+# so local test runs on Windows go through this image, see scripts/test.
+FROM python:3.14-slim
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Older Home Assistant releases pin packages without Python 3.14 wheels.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gcc libc6-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG PHCC_VERSION=""
+COPY requirements_test.txt /tmp/requirements_test.txt
+RUN uv pip install --system --no-cache -r /tmp/requirements_test.txt \
+    && if [ -n "$PHCC_VERSION" ]; then \
+        uv pip install --system --no-cache "pytest-homeassistant-custom-component==$PHCC_VERSION"; \
+    fi
+
+WORKDIR /work

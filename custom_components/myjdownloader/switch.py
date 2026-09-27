@@ -82,7 +82,7 @@ class MyJDownloaderSwitch(MyJDownloaderDeviceEntity, SwitchEntity):
     @property
     def unique_id(self) -> str:
         """Return the unique ID for this switch."""
-        return "_".join([MYJDOWNLOADER_DOMAIN, self._name, DOMAIN, self._key])
+        return f"{MYJDOWNLOADER_DOMAIN}_{self._name}_{DOMAIN}_{self._key}"
 
     @property
     def is_on(self) -> bool:

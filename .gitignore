@@ -1,3 +1,19 @@
 /.project
 /.pydevproject
 **/__pycache__
+
+# Python tooling
+.venv*/
+.coverage
+coverage.xml
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local tooling that is not part of the repository
+poetry.lock
+*.code-workspace
+
+# Live test environment (live/docker-compose.yml)
+live/.env
+.env

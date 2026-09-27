@@ -1,23 +1,28 @@
 restart_and_update:
   target:
-    device:
+    entity:
       integration: myjdownloader
+      domain: sensor
 run_update_check:
   target:
-    device:
+    entity:
       integration: myjdownloader
+      domain: sensor
 start_downloads:
   target:
-    device:
+    entity:
       integration: myjdownloader
+      domain: sensor
 stop_downloads:
   target:
-    device:
+    entity:
       integration: myjdownloader
+      domain: sensor
 add_links:
   target:
-    device:
+    entity:
       integration: myjdownloader
+      domain: sensor
   fields:
     links:
       required: true

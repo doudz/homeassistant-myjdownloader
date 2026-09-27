@@ -94,13 +94,7 @@ class MyJDownloaderUpdate(MyJDownloaderDeviceEntity, UpdateEntity):
     @property
     def unique_id(self) -> str:
         """Return the unique ID for this update."""
-        return "_".join(
-            [
-                MYJDOWNLOADER_DOMAIN,
-                self._name,
-                DOMAIN,
-            ]
-        )
+        return f"{MYJDOWNLOADER_DOMAIN}_{self._name}_{DOMAIN}"
 
     @property
     def installed_version(self) -> str | None:

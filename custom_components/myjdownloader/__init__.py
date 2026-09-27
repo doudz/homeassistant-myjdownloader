@@ -63,9 +63,9 @@ class MyJDownloaderHub:
                 await self._hass.async_add_executor_job(
                     self.myjd.connect, email, password
                 )
-        except MYJDException as exception:
+        except MYJDException:
             _LOGGER.error("Failed to connect to MyJDownloader")
-            raise exception
+            raise
 
         return self.myjd.is_connected()
 
@@ -75,10 +75,10 @@ class MyJDownloaderHub:
         try:
             async with self._sem:
                 return await self._hass.async_add_executor_job(func, *args, **kwargs)
-        except MYJDConnectionException as ex:
+        except MYJDConnectionException:
             # update list of online devices out of order if device is not reachable
             await self.async_update_devices(no_throttle=True)
-            raise ex
+            raise
 
     @Throttle(
         datetime.timedelta(seconds=SCAN_INTERVAL_SECONDS),

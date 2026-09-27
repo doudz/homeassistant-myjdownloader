@@ -60,3 +60,22 @@ Note: Only select a single _entity_ (e.g., the *_status entity) from the JDownlo
 - [ ] When using the pause switch, it might take a while for the status sensor to reflect the new pause state.
 - [ ] There is not much error handling yet, e.g. when you change your password, you need to remove and add the integration again.
 - [ ] Selecting a JDownloader device for a service target will call that service as many times as there are enabled entities for that device. This integration probably needs to be refactored in a way, that this is avoided e.g., with a designated `myjdownloader.*` entity.
+
+## Development
+
+Home Assistant does not run on Windows, so tests run in a Linux container
+(Docker required; plain `pytest` works on Linux/macOS after
+`pip install -r requirements_test.txt`):
+
+```bash
+scripts/test          # ruff, formatting and pytest against the latest supported Home Assistant
+scripts/test --min    # tests against the minimum supported Home Assistant (2026.3)
+scripts/test mypy     # any command inside the test container
+```
+
+A live environment with Home Assistant and headless JDownloaders is in `live/`;
+copy `live/.env.example` to `live/.env` and use a dedicated MyJDownloader test account:
+
+```bash
+docker compose -f live/docker-compose.yml up -d
+```

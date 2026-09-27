@@ -1,0 +1,49 @@
+# Live test environment: Home Assistant with this integration mounted, plus
+# headless JDownloader instances logged into a dedicated MyJDownloader test account.
+#
+#   docker compose -f live/docker-compose.yml up -d
+#   docker compose -f live/docker-compose.yml --profile second-jd up -d   # adds a 2nd JD
+#
+# Credentials come from live/.env (gitignored), see live/.env.example.
+name: myjd-live
+
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:${HA_VERSION:-2026.9.3}
+    ports:
+      - "8123:8123"
+    volumes:
+      - ha-config:/config
+      - ./configuration.yaml:/config/configuration.yaml:ro
+      - ../custom_components/myjdownloader:/config/custom_components/myjdownloader:ro
+    restart: unless-stopped
+
+  jdownloader:
+    image: antlafarge/jdownloader:latest
+    environment:
+      JD_EMAIL: ${JD_EMAIL:?set JD_EMAIL in live/.env}
+      JD_PASSWORD: ${JD_PASSWORD:?set JD_PASSWORD in live/.env}
+      JD_DEVICENAME: ha-live-jd1
+    volumes:
+      - jd1-cfg:/jdownloader/cfg
+      - jd1-downloads:/jdownloader/downloads
+    restart: unless-stopped
+
+  jdownloader2:
+    profiles: [second-jd]
+    image: antlafarge/jdownloader:latest
+    environment:
+      JD_EMAIL: ${JD_EMAIL}
+      JD_PASSWORD: ${JD_PASSWORD}
+      JD_DEVICENAME: ha-live-jd2
+    volumes:
+      - jd2-cfg:/jdownloader/cfg
+      - jd2-downloads:/jdownloader/downloads
+    restart: unless-stopped
+
+volumes:
+  ha-config:
+  jd1-cfg:
+  jd1-downloads:
+  jd2-cfg:
+  jd2-downloads:
