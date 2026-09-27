@@ -1,13 +1,18 @@
 """Tests for the MyJDownloader sensor platform."""
 
+from datetime import timedelta
 from unittest.mock import MagicMock
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
 
 
 async def test_sensor_states_after_setup(
@@ -142,3 +147,32 @@ async def test_sensor_unavailable_when_offline(
     online_state = hass.states.get(online_entity_id)
     assert online_state is not None
     assert online_state.state == "0"
+
+
+async def test_download_lists_without_secrets(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    mock_device: MagicMock,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Test package and link queries never request passwords, URLs or folders."""
+    for entity_id in (
+        "sensor.jdownloader_mypc_packages",
+        "sensor.jdownloader_mypc_links",
+    ):
+        entity_registry.async_update_entity(entity_id, disabled_by=None)
+    await hass.config_entries.async_reload(init_integration.entry_id)
+    await hass.async_block_till_done()
+    # The second sensor's immediate refresh is debounced by the coordinator.
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=11))
+    await hass.async_block_till_done()
+
+    for query in (
+        mock_device.downloads.query_packages,
+        mock_device.downloads.query_links,
+    ):
+        query.assert_called()
+        (params,) = query.call_args.args
+        requested = {key for key, value in params[0].items() if value is True}
+        assert not requested & {"password", "url", "comment", "saveTo"}
+        assert {"bytesLoaded", "bytesTotal", "eta", "status"} <= requested

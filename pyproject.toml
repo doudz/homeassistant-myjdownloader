@@ -12,6 +12,9 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 norecursedirs = [".git", ".venv*"]
 filterwarnings = ["error::pytest.PytestUnraisableExceptionWarning"]
+markers = [
+  "expected_errors(*substrings): log messages at ERROR level this test provokes on purpose",
+]
 
 [tool.coverage.run]
 source = ["custom_components.myjdownloader"]
@@ -179,6 +182,8 @@ split-on-trailing-comma = false
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["PTH"]
+# Developer script for the live test stack, not part of the integration.
+"live/**" = ["ASYNC221", "D102", "D103", "D107", "INP001", "T201"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 25

@@ -58,6 +58,7 @@ async def test_sw_version(
     assert device.sw_version == "48000"
 
 
+@pytest.mark.expected_errors("Failed to remove device entry")
 async def test_online_device_cannot_be_removed(
     hass: HomeAssistant,
     hass_ws_client: WebSocketGenerator,
@@ -93,6 +94,7 @@ async def test_removed_device_back_before_next_refresh(
     assert "Unexpected error" not in caplog.text
 
 
+@pytest.mark.expected_errors("Failed to remove device entry")
 async def test_account_device_cannot_be_removed(
     hass: HomeAssistant,
     hass_ws_client: WebSocketGenerator,

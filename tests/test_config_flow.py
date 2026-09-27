@@ -2,7 +2,12 @@
 
 from unittest.mock import MagicMock
 
-from myjdapi import MYJDAuthFailedException, MYJDConnectionException
+from myjdapi import (
+    MYJDAuthFailedException,
+    MYJDConnectionException,
+    MYJDEmailInvalidException,
+    MYJDErrorEmailNotConfirmedException,
+)
 import pytest
 import requests
 
@@ -21,6 +26,8 @@ ERRORS = [
     (MYJDConnectionException("offline"), "cannot_connect"),
     (requests.ConnectionError("unreachable"), "cannot_connect"),
     (MYJDAuthFailedException("MYJD"), "invalid_auth"),
+    (MYJDErrorEmailNotConfirmedException("MYJD"), "invalid_auth"),
+    (MYJDEmailInvalidException("MYJD"), "invalid_auth"),
     (RuntimeError("boom"), "unknown"),
 ]
 
@@ -52,6 +59,7 @@ async def test_user_flow(hass: HomeAssistant, mock_myjdapi: MagicMock) -> None:
 
 @pytest.mark.usefixtures("mock_setup_entry")
 @pytest.mark.parametrize(("side_effect", "error"), ERRORS)
+@pytest.mark.expected_errors("Unexpected exception")
 async def test_user_flow_errors(
     hass: HomeAssistant,
     mock_myjdapi: MagicMock,
@@ -120,6 +128,7 @@ async def test_reauth_flow(
 
 @pytest.mark.usefixtures("mock_setup_entry")
 @pytest.mark.parametrize(("side_effect", "error"), ERRORS)
+@pytest.mark.expected_errors("Unexpected exception")
 async def test_reauth_flow_errors(
     hass: HomeAssistant,
     mock_myjdapi: MagicMock,
@@ -169,6 +178,7 @@ async def test_reconfigure_flow(
 
 @pytest.mark.usefixtures("mock_setup_entry")
 @pytest.mark.parametrize(("side_effect", "error"), ERRORS)
+@pytest.mark.expected_errors("Unexpected exception")
 async def test_reconfigure_flow_errors(
     hass: HomeAssistant,
     mock_myjdapi: MagicMock,

@@ -73,6 +73,7 @@ async def test_session_reconnect_falls_back_to_login(
         MYJDConnectionException("no connection"),
     ],
 )
+@pytest.mark.expected_errors("Error fetching myjdownloader data")
 async def test_account_error_marks_unavailable_and_recovers(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,
@@ -90,6 +91,7 @@ async def test_account_error_marks_unavailable_and_recovers(
     assert hass.states.get(STATUS).state == "running"
 
 
+@pytest.mark.expected_errors("Authentication failed while fetching")
 async def test_auth_error_during_refresh(
     hass: HomeAssistant, init_integration: MockConfigEntry, mock_myjdapi: MagicMock
 ) -> None:
@@ -221,6 +223,7 @@ async def test_availability_logged_once(
     assert caplog.text.count("JDownloader MyPC is available again") == 1
 
 
+@pytest.mark.expected_errors("Error fetching myjdownloader_latest_version data")
 async def test_latest_version_failure_does_not_block_setup(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,

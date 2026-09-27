@@ -2,7 +2,9 @@
 
 from collections.abc import Generator
 import json
+import logging
 from pathlib import Path
+import re
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -13,6 +15,7 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClien
 from syrupy.assertion import SnapshotAssertion
 
 from custom_components.myjdownloader.const import DOMAIN, LATEST_VERSION_URL
+from homeassistant import block_async_io
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 
@@ -41,6 +44,66 @@ def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
     always wins, so snapshots are always stored in tests/snapshots.
     """
     return snapshot.use_extension(HomeAssistantSnapshotExtension)
+
+
+@pytest.fixture(autouse=True, scope="session")
+def detect_blocking_calls() -> Generator[None]:
+    """Detect blocking I/O in the event loop like a running Home Assistant.
+
+    Home Assistant enables this in its bootstrap, which tests do not run. For
+    custom integrations it logs "Detected blocking call"; log_guard fails on it.
+    The detection is bound to the main thread, so it is disabled again after
+    the last test; otherwise it reports pytest-cov combining its data files.
+    """
+    calls = block_async_io._BLOCKED_CALLS.calls  # noqa: SLF001
+    if calls:
+        yield
+        return
+    block_async_io.enable()
+    yield
+    for call in calls:
+        setattr(call.object, call.function, call.original_func)
+    calls.clear()
+
+
+# Credentials must never be logged: the test account and the token parameters
+# of MyJDownloader URLs (unless masked).
+_SECRETS = re.compile(
+    rf"{re.escape(TEST_EMAIL)}|{re.escape(TEST_PASSWORD)}"
+    r"|(email|sessiontoken|regaintoken|signature)=(?!\*\*REDACTED\*\*)[^&\s]",
+    re.IGNORECASE,
+)
+# Always a bug, at any level. (Home Assistant logs tracebacks of handled errors
+# at DEBUG, so tracebacks only count at ERROR level.)
+_UNEXPECTED = ("Unexpected error", "Detected blocking call")
+
+
+@pytest.fixture(autouse=True)
+def log_guard(
+    request: pytest.FixtureRequest, caplog: pytest.LogCaptureFixture
+) -> Generator[None]:
+    """Fail tests that log errors or credentials.
+
+    Tests provoking errors on purpose declare them with
+    @pytest.mark.expected_errors("substring", ...). Credentials are never allowed.
+    """
+    caplog.set_level(logging.DEBUG, logger="custom_components.myjdownloader")
+    caplog.set_level(logging.DEBUG, logger="myjdapi")
+    yield
+    marker = request.node.get_closest_marker("expected_errors")
+    allowed = marker.args if marker else ()
+    formatter = logging.Formatter("%(levelname)s %(name)s: %(message)s")
+    problems = []
+    for record in caplog.get_records("setup") + caplog.get_records("call"):
+        text = formatter.format(record)
+        if _SECRETS.search(text):
+            problems.append(f"credential logged: {text[:300]}")
+        elif (
+            record.levelno >= logging.ERROR or any(u in text for u in _UNEXPECTED)
+        ) and not any(a in text for a in allowed):
+            problems.append(f"unexpected log: {text[:300]}")
+    if problems:
+        pytest.fail("\n".join(problems), pytrace=False)
 
 
 @pytest.fixture
@@ -109,9 +172,12 @@ def mock_myjdapi(mock_devices: dict[str, MagicMock]) -> Generator[MagicMock]:
 @pytest.fixture
 def mock_setup_entry() -> Generator[AsyncMock]:
     """Prevent the config flow tests from setting up the created entry."""
-    with patch(
-        "custom_components.myjdownloader.async_setup_entry", return_value=True
-    ) as mock:
+    with (
+        patch(
+            "custom_components.myjdownloader.async_setup_entry", return_value=True
+        ) as mock,
+        patch("custom_components.myjdownloader.async_unload_entry", return_value=True),
+    ):
         yield mock
 
 

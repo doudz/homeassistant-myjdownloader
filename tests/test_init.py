@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock
 
 from myjdapi import MYJDAuthFailedException, MYJDConnectionException
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.myjdownloader.const import DOMAIN
@@ -139,6 +140,15 @@ async def test_migrate_v1(
         suggested_object_id=entity_id.split(".")[1],
         config_entry=entry,
     )
+    # "Update available" binary sensor of versions up to 2.4
+    entity_registry.async_get_or_create(
+        "binary_sensor",
+        DOMAIN,
+        "myjdownloader_JDownloader MyPC Update Available_binary_sensor_update_available",
+        suggested_object_id="jdownloader_mypc_update_available",
+        config_entry=entry,
+        device_id=device.id,
+    )
 
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
@@ -164,15 +174,26 @@ async def test_migrate_v1(
         if e.entity_id.endswith("_2")
     ]
     assert hass.states.get("sensor.jdownloader_mypc_status").state == "running"
+    # The legacy binary sensor is removed, the new connectivity sensor is kept.
+    assert (
+        entity_registry.async_get("binary_sensor.jdownloader_mypc_update_available")
+        is None
+    )
+    assert (
+        entity_registry.async_get("binary_sensor.jdownloader_mypc_connected")
+        is not None
+    )
 
 
+@pytest.mark.expected_errors("Another entry already uses this MyJDownloader account")
 async def test_migrate_v1_duplicate_account(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
     mock_myjdapi: MagicMock,
     mock_latest_version: None,
+    entity_registry: er.EntityRegistry,
 ) -> None:
-    """Test a second v1 entry for the same account keeps no unique_id."""
+    """Test a second v1 entry for the same account is migrated but not set up."""
     mock_config_entry.add_to_hass(hass)
     duplicate = MockConfigEntry(
         domain=DOMAIN,
@@ -186,8 +207,13 @@ async def test_migrate_v1_duplicate_account(
 
     assert duplicate.version == 2
     assert duplicate.unique_id is None
+    # Its entities would clash with the ones of the first entry.
+    assert duplicate.state is ConfigEntryState.SETUP_ERROR
+    assert mock_config_entry.state is ConfigEntryState.LOADED
+    assert not er.async_entries_for_config_entry(entity_registry, duplicate.entry_id)
 
 
+@pytest.mark.expected_errors("which is higher than the current version")
 async def test_migrate_future_version(
     hass: HomeAssistant, mock_myjdapi: MagicMock
 ) -> None:

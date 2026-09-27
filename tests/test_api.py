@@ -58,6 +58,7 @@ async def test_auth_error_scrubbed(
     assert "email=**REDACTED**" in str(error)
 
 
+@pytest.mark.expected_errors("Error fetching myjdownloader data")
 async def test_connection_error_scrubbed(
     hass: HomeAssistant,
     hass_client: ClientSessionGenerator,

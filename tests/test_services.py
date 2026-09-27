@@ -12,6 +12,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr, issue_registry as ir
 
+from .conftest import _mock_device
+
 STATUS = "sensor.jdownloader_mypc_status"
 
 JDOWNLOADER_ID = "af9d03a21ddb917492dc1af8a6427f11"
@@ -299,3 +301,89 @@ async def test_add_links_invalid_priority(
             },
             blocking=True,
         )
+
+
+async def test_add_links_any_link_type(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    mock_device: MagicMock,
+    device_registry: dr.DeviceRegistry,
+) -> None:
+    """Test magnet links and text are passed to JDownloader's link crawler."""
+    jd_device_id = _get_jd_device_id(device_registry, init_integration.entry_id)
+    await hass.services.async_call(
+        DOMAIN,
+        "add_links",
+        {
+            "device_id": jd_device_id,
+            "links": [
+                "magnet:?xt=urn:btih:abc",
+                " ftp://example.com/f.zip ",
+                "see https://example.com/x",
+            ],
+        },
+        blocking=True,
+    )
+    (params,) = mock_device.linkgrabber.add_links.call_args.args
+    assert params[0]["links"] == (
+        "magnet:?xt=urn:btih:abc\nftp://example.com/f.zip\nsee https://example.com/x"
+    )
+
+
+async def test_add_links_empty_link(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    device_registry: dr.DeviceRegistry,
+) -> None:
+    """Test blank links are rejected."""
+    jd_device_id = _get_jd_device_id(device_registry, init_integration.entry_id)
+    with pytest.raises(vol.Invalid):
+        await hass.services.async_call(
+            DOMAIN,
+            "add_links",
+            {"device_id": jd_device_id, "links": ["https://example.com/a", "  "]},
+            blocking=True,
+        )
+
+
+async def test_targets_validated_before_any_call(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    mock_myjdapi: MagicMock,
+    mock_devices: dict[str, MagicMock],
+    device_registry: dr.DeviceRegistry,
+) -> None:
+    """Test nothing is sent when one of several JDownloaders is offline."""
+    coordinator = init_integration.runtime_data.coordinator
+    first = mock_myjdapi.list_devices.return_value[0]
+    second = {"name": "Laptop", "id": "0123456789abcdef0123456789abcdef", "type": "jd"}
+    mock_devices[second["id"]] = _mock_device(second)
+    mock_myjdapi.list_devices.return_value = [first, second]
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    device_ids = [
+        _get_jd_device_id(device_registry, init_integration.entry_id),
+        next(
+            device.id
+            for device in dr.async_entries_for_config_entry(
+                device_registry, init_integration.entry_id
+            )
+            if (DOMAIN, second["id"]) in device.identifiers
+        ),
+    ]
+
+    # The second JDownloader goes offline.
+    mock_myjdapi.list_devices.return_value = [first]
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    with pytest.raises(ServiceValidationError) as err:
+        await hass.services.async_call(
+            DOMAIN,
+            "add_links",
+            {"device_id": device_ids, "links": ["https://example.com/a"]},
+            blocking=True,
+        )
+    assert err.value.translation_key == "device_offline"
+    for device in mock_devices.values():
+        device.linkgrabber.add_links.assert_not_called()
