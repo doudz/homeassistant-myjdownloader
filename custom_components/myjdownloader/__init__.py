@@ -1,197 +1,172 @@
 """The MyJDownloader integration."""
 
-from __future__ import annotations
-
-import asyncio
-from collections import defaultdict
-import datetime
-from http.client import HTTPException
 import logging
+from typing import Any
 
-from myjdapi.exception import MYJDConnectionException
-from myjdapi.myjdapi import Jddevice, Myjdapi, MYJDException
-
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.dispatcher import async_dispatcher_send
-from homeassistant.util import Throttle
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 
+from .api import MyJDownloaderClient
 from .const import (
-    DATA_MYJDOWNLOADER_CLIENT,
-    DOMAIN as MYJDOWNLOADER_DOMAIN,
-    MYJDAPI_APP_KEY,
-    SCAN_INTERVAL_SECONDS,
+    DOMAIN,
     SERVICE_ADD_LINKS,
     SERVICE_RESTART_AND_UPDATE,
     SERVICE_RUN_UPDATE_CHECK,
     SERVICE_START_DOWNLOADS,
     SERVICE_STOP_DOWNLOADS,
+    TITLE,
+)
+from .coordinator import (
+    JDownloaderLatestVersionCoordinator,
+    MyJDownloaderConfigEntry,
+    MyJDownloaderCoordinator,
+    MyJDownloaderRuntimeData,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-
-# For your initial PR, limit it to 1 platform.
 PLATFORMS: list[Platform] = [
+    Platform.BINARY_SENSOR,
     Platform.SENSOR,
     Platform.SWITCH,
     Platform.UPDATE,
 ]
 
-
-class MyJDownloaderHub:
-    """A MyJDownloader Hub wrapper class."""
-
-    def __init__(self, hass: HomeAssistant) -> None:
-        """Initialize the MyJDownloader hub."""
-        self._hass = hass
-        self._websession = async_get_clientsession(self._hass)
-        self._sem = asyncio.Semaphore(1)  # API calls need to be sequential
-        self.myjd = Myjdapi()
-        self.myjd.set_app_key(MYJDAPI_APP_KEY)
-        self._devices: dict[str, Jddevice] = {}
-        self.devices_platforms: dict[str, set] = defaultdict(lambda: set())
-
-    @Throttle(datetime.timedelta(seconds=SCAN_INTERVAL_SECONDS))
-    async def authenticate(self, email, password) -> bool:
-        """Authenticate with Myjdapi."""
-        try:
-            async with self._sem:
-                await self._hass.async_add_executor_job(
-                    self.myjd.connect, email, password
-                )
-        except MYJDException:
-            _LOGGER.error("Failed to connect to MyJDownloader")
-            raise
-
-        return self.myjd.is_connected()
-
-    async def async_query(self, func, *args, **kwargs):
-        """Perform query while ensuring sequentiality of API calls."""
-        # TODO catch exceptions, retry once with reconnect, then connect, then reauth if invalid_auth maybe with self.myjd.is_connected()
-        try:
-            async with self._sem:
-                return await self._hass.async_add_executor_job(func, *args, **kwargs)
-        except MYJDConnectionException:
-            # update list of online devices out of order if device is not reachable
-            await self.async_update_devices(no_throttle=True)
-            raise
-
-    @Throttle(
-        datetime.timedelta(seconds=SCAN_INTERVAL_SECONDS),
-        limit_no_throttle=datetime.timedelta(seconds=5),
-    )
-    async def async_update_devices(self, *args, **kwargs):
-        """Update list of online devices."""
-
-        # We need to reconnect to the API to query the list of active JDownloaders
-        await self.async_query(self.myjd.reconnect)  # TODO move to async query
-        await self.async_query(self.myjd.update_devices)
-
-        # add Jddevice objects for all online JDownloaders, if not exist
-        new_devices = {}
-        available_device_infos = await self.async_query(self.myjd.list_devices)
-        for device_info in available_device_infos:
-            if device_info["id"] not in self._devices:
-                _LOGGER.debug("JDownloader (%s) is online", device_info["name"])
-                new_devices.update(
-                    {
-                        device_info["id"]: await self.async_query(
-                            self.myjd.get_device, None, device_info["id"]
-                        )
-                    }
-                )
-        if new_devices:
-            self._devices.update(new_devices)
-            async_dispatcher_send(self._hass, f"{MYJDOWNLOADER_DOMAIN}_new_devices")
-
-        # remove JDownloader objects, that are not online anymore
-        unavailable_device_ids = [
-            device_id
-            for device_id in self._devices
-            if device_id not in [device["id"] for device in available_device_infos]
-        ]
-        for device_id in unavailable_device_ids:
-            _LOGGER.debug("JDownloader (%s) is offline", self._devices[device_id].name)
-            del self._devices[device_id]
-
-        # TODO additionally trigger update of sensor for number of devices immediately
-        # http://dev-docs.home-assistant.io/en/master/api/helpers.html#module-homeassistant.helpers.dispatcher
-
-        return self._devices
-
-    @property
-    def devices(self):
-        """Get dictionary of device ids and objects."""
-        return self._devices
-
-    def get_device(self, device_id):
-        """Return an online device or raise Exception."""
-        try:
-            return self._devices[device_id]
-        except Exception as ex:
-            raise JDownloaderOfflineException(
-                f"JDownloader ({device_id}) offline"
-            ) from ex
-
-    async def make_request(self, url):
-        """Make a http request."""
-        async with self._websession.get(url) as resp:
-            if resp.status == 200:
-                return await resp.text()
-            raise HTTPException("Request failed")
+# Suffixes of the v1 unique_ids ("myjdownloader_<entity name>_<suffix>") and
+# the entity description keys they map to.
+LEGACY_UNIQUE_ID_SUFFIXES = {
+    "_sensor_status": "status",
+    "_sensor_download_speed": "download_speed",
+    "_sensor_packages": "packages",
+    "_sensor_links": "links",
+    "_switch_pause": "pause",
+    "_switch_limit": "limit",
+    "_update": "update",
+}
+LEGACY_ONLINE_COUNT_SUFFIX = "_sensor_number"
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant, entry: MyJDownloaderConfigEntry
+) -> bool:
     """Set up MyJDownloader from a config entry."""
-
-    # create data storage
-    hass.data.setdefault(MYJDOWNLOADER_DOMAIN, {})[entry.entry_id] = {
-        DATA_MYJDOWNLOADER_CLIENT: None
-    }
-
-    # initial connection
-    hub = MyJDownloaderHub(hass)
+    client = MyJDownloaderClient(
+        hass, entry.data[CONF_EMAIL], entry.data[CONF_PASSWORD]
+    )
+    coordinator = MyJDownloaderCoordinator(hass, entry, client)
     try:
-        if not await hub.authenticate(
-            entry.data[CONF_EMAIL], entry.data[CONF_PASSWORD]
-        ):
-            raise ConfigEntryNotReady
-    except MYJDException as exception:
-        raise ConfigEntryNotReady from exception
+        await coordinator.async_config_entry_first_refresh()
+    except Exception:
+        # A retry creates a new client, do not leave the session behind.
+        await client.async_disconnect()
+        raise
 
-    await hub.async_update_devices()  # get initial list of JDownloaders
-    hass.data.setdefault(MYJDOWNLOADER_DOMAIN, {})[entry.entry_id][
-        DATA_MYJDOWNLOADER_CLIENT
-    ] = hub
+    # The latest version is informational, a failure must not block the setup.
+    update_coordinator = JDownloaderLatestVersionCoordinator(hass, entry)
+    await update_coordinator.async_refresh()
+
+    # The account device has to exist before JDownloader devices refer to it.
+    account_device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, f"account_{entry.entry_id}")},
+        name=TITLE,
+        manufacturer="AppWork GmbH",
+        model="MyJDownloader account",
+        entry_type=dr.DeviceEntryType.SERVICE,
+        configuration_url="https://my.jdownloader.org/",
+    )
+
+    entry.runtime_data = MyJDownloaderRuntimeData(
+        client=client,
+        coordinator=coordinator,
+        update_coordinator=update_coordinator,
+        account_device_id=account_device.id,
+    )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    # Services are defined in MyJDownloaderDeviceEntity and
-    # registered in setup of sensor platform.
-
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(
+    hass: HomeAssistant, entry: MyJDownloaderConfigEntry
+) -> bool:
     """Unload a config entry."""
+    # Registered by the sensor platform until the services are reworked.
+    for service in (
+        SERVICE_RESTART_AND_UPDATE,
+        SERVICE_RUN_UPDATE_CHECK,
+        SERVICE_START_DOWNLOADS,
+        SERVICE_STOP_DOWNLOADS,
+        SERVICE_ADD_LINKS,
+    ):
+        hass.services.async_remove(DOMAIN, service)
 
-    # remove services
-    hass.services.async_remove(MYJDOWNLOADER_DOMAIN, SERVICE_RESTART_AND_UPDATE)
-    hass.services.async_remove(MYJDOWNLOADER_DOMAIN, SERVICE_RUN_UPDATE_CHECK)
-    hass.services.async_remove(MYJDOWNLOADER_DOMAIN, SERVICE_START_DOWNLOADS)
-    hass.services.async_remove(MYJDOWNLOADER_DOMAIN, SERVICE_STOP_DOWNLOADS)
-    hass.services.async_remove(MYJDOWNLOADER_DOMAIN, SERVICE_ADD_LINKS)
-
-    # unload platforms
-    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        hass.data[MYJDOWNLOADER_DOMAIN].pop(entry.entry_id)
-
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok:
+        await entry.runtime_data.client.async_disconnect()
     return unload_ok
 
 
-class JDownloaderOfflineException(Exception):
-    """JDownloader offline exception."""
+async def async_migrate_entry(
+    hass: HomeAssistant, entry: MyJDownloaderConfigEntry
+) -> bool:
+    """Migrate old config entries."""
+    if entry.version > 2:
+        # Downgrade from a future version
+        return False
+
+    if entry.version == 1:
+        device_registry = dr.async_get(hass)
+
+        @callback
+        def _migrate_unique_id(entity: er.RegistryEntry) -> dict[str, Any] | None:
+            if entity.unique_id.endswith(LEGACY_ONLINE_COUNT_SUFFIX):
+                return {"new_unique_id": f"{entry.entry_id}_online_count"}
+            if (
+                entity.device_id is None
+                or (device := device_registry.async_get(entity.device_id)) is None
+            ):
+                return None
+            device_id = next(
+                (value for domain, value in device.identifiers if domain == DOMAIN),
+                None,
+            )
+            if device_id is None:
+                return None
+            for suffix, key in LEGACY_UNIQUE_ID_SUFFIXES.items():
+                if entity.unique_id.endswith(suffix):
+                    return {"new_unique_id": f"{device_id}_{key}"}
+            return None
+
+        await er.async_migrate_entries(hass, entry.entry_id, _migrate_unique_id)
+
+        # Versions up to 2.4 had an "update available" binary sensor, replaced
+        # by the update entity; its registry entries would stay orphaned.
+        entity_registry = er.async_get(hass)
+        for entity in er.async_entries_for_config_entry(
+            entity_registry, entry.entry_id
+        ):
+            if entity.domain == "binary_sensor" and entity.unique_id.startswith(
+                f"{DOMAIN}_"
+            ):
+                entity_registry.async_remove(entity.entity_id)
+
+        unique_id = entry.unique_id
+        if unique_id is None:
+            email = entry.data[CONF_EMAIL].strip().lower()
+            if any(
+                other.unique_id == email
+                for other in hass.config_entries.async_entries(DOMAIN)
+            ):
+                _LOGGER.warning(
+                    "Config entry %s uses the same MyJDownloader account as "
+                    "another entry; remove it",
+                    entry.entry_id,
+                )
+            else:
+                unique_id = email
+        hass.config_entries.async_update_entry(entry, unique_id=unique_id, version=2)
+        _LOGGER.debug("Migrated config entry %s to version 2", entry.entry_id)
+
+    return True

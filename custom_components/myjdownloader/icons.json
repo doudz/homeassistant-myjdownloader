@@ -1,4 +1,38 @@
 {
+  "entity": {
+    "sensor": {
+      "status": {
+        "default": "mdi:play-pause",
+        "state": {
+          "idle": "mdi:stop",
+          "running": "mdi:play",
+          "paused": "mdi:pause",
+          "stopping": "mdi:stop-circle-outline",
+          "stopped": "mdi:stop"
+        }
+      },
+      "download_speed": {
+        "default": "mdi:download"
+      },
+      "packages": {
+        "default": "mdi:package-down"
+      },
+      "links": {
+        "default": "mdi:link-box"
+      },
+      "online_count": {
+        "default": "mdi:download-multiple"
+      }
+    },
+    "switch": {
+      "pause": {
+        "default": "mdi:play-pause"
+      },
+      "limit": {
+        "default": "mdi:download-lock"
+      }
+    }
+  },
   "services": {
     "restart_and_update": "mdi:restart",
     "run_update_check": "mdi:update",

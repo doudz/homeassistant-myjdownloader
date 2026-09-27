@@ -37,6 +37,8 @@ def mock_config_entry() -> MockConfigEntry:
         domain=DOMAIN,
         title="MyJDownloader",
         data={CONF_EMAIL: TEST_EMAIL, CONF_PASSWORD: TEST_PASSWORD},
+        unique_id=TEST_EMAIL,
+        version=2,
     )
 
 
@@ -50,22 +52,43 @@ def _mock_device(device_info: dict[str, str]) -> MagicMock:
     device.downloadcontroller.get_speed_in_bytes.return_value = 2_500_000
     device.downloads.query_packages.return_value = [{"name": "package"}]
     device.downloads.query_links.return_value = [{"name": "link1"}, {"name": "link2"}]
-    device.toolbar.status_downloadSpeedLimit.return_value = 0
+    device.toolbar.get_status.return_value = {"limit": False}
     device.update.is_update_available.return_value = False
-    device.jd.get_core_revision.return_value = 48000
+    # The core revision is queried through the raw endpoint (Jddevice.jd is
+    # missing in myjdapi 1.1.9 and 1.1.10).
+    device.action.side_effect = lambda path, *args, **kwargs: (
+        48000 if path == "/jd/getCoreRevision" else None
+    )
     return device
 
 
 @pytest.fixture
-def mock_myjdapi() -> Generator[MagicMock]:
+def mock_devices() -> dict[str, MagicMock]:
+    """Return the mocked Jddevice objects by device id."""
+    return {
+        info["id"]: _mock_device(info)
+        for info in load_json_fixture("list_devices.json")
+    }
+
+
+@pytest.fixture
+def mock_device(mock_devices: dict[str, MagicMock]) -> MagicMock:
+    """Return the mocked Jddevice of the single test JDownloader ("MyPC")."""
+    return next(iter(mock_devices.values()))
+
+
+@pytest.fixture
+def mock_myjdapi(mock_devices: dict[str, MagicMock]) -> Generator[MagicMock]:
     """Patch the myjdapi client used by the integration and its config flow."""
     devices = load_json_fixture("list_devices.json")
-    with patch("custom_components.myjdownloader.Myjdapi", autospec=True) as mock_class:
+    with patch(
+        "custom_components.myjdownloader.api.Myjdapi", autospec=True
+    ) as mock_class:
         client = mock_class.return_value
         client.is_connected.return_value = True
         client.list_devices.return_value = devices
         client.get_device.side_effect = lambda device_name=None, device_id=None: (
-            _mock_device(next(d for d in devices if d["id"] == device_id))
+            mock_devices[device_id]
         )
         yield client
 

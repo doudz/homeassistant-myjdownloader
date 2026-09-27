@@ -1,104 +1,154 @@
 {
-    "config": {
-        "abort": {
-            "already_configured": "Device is already configured"
-        },
-        "error": {
-            "cannot_connect": "Failed to connect",
-            "invalid_auth": "Invalid authentication",
-            "unknown": "Unexpected error"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "email": "Email",
-                    "password": "Password"
-                }
-            }
-        }
+  "config": {
+    "abort": {
+      "already_configured": "Device is already configured"
     },
-    "entity_component": {
-        "_": {
-            "name": "MyJDownloader",
-            "state": {
-                "idle": "Idle",
-                "paused": "Paused",
-                "running": "Running",
-                "stopped": "Stopped"
-            }
-        }
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
     },
-    "selector": {
-        "priority": {
-            "options": {
-                "default": "Default",
-                "high": "High",
-                "higher": "Higher",
-                "highest": "Highest",
-                "low": "Low",
-                "lower": "Lower",
-                "lowest": "Lowest"
-            }
+    "step": {
+      "user": {
+        "data": {
+          "email": "Email",
+          "password": "Password"
         }
-    },
-    "services": {
-        "add_links": {
-            "description": "Add links to LinkGrabber.",
-            "fields": {
-                "auto_extract": {
-                    "description": "Extract downloaded archives automatically?",
-                    "name": "Auto extract archives"
-                },
-                "autostart": {
-                    "description": "Start downloads automatically after adding?",
-                    "name": "Autostart"
-                },
-                "destination_folder": {
-                    "description": "The destination folder.",
-                    "name": "Destination folder"
-                },
-                "download_password": {
-                    "description": "The password for the link.",
-                    "name": "Download password"
-                },
-                "extract_password": {
-                    "description": "The password for archive extraction.",
-                    "name": "Extract password"
-                },
-                "links": {
-                    "description": "The link(s) to add.",
-                    "name": "Links"
-                },
-                "overwrite_packagizer_rules": {
-                    "description": "Overwrite packagizer rules?",
-                    "name": "Overwrite packagizer rules"
-                },
-                "package_name": {
-                    "description": "The name of the package.",
-                    "name": "Package name"
-                },
-                "priority": {
-                    "description": "The priority of the link(s).",
-                    "name": "Priority"
-                }
-            },
-            "name": "Add links"
-        },
-        "restart_and_update": {
-            "description": "Restarts and updates JDownloader.",
-            "name": "Restart and update"
-        },
-        "run_update_check": {
-            "description": "Checks for updates.",
-            "name": "Run update check"
-        },
-        "start_downloads": {
-            "description": "Starts downloading.",
-            "name": "Start"
-        },
-        "stop_downloads": {
-            "description": "Stops downloading.",
-            "name": "Stop"
-        }
+      }
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "connected": {
+        "name": "Connected"
+      }
+    },
+    "sensor": {
+      "status": {
+        "name": "Status",
+        "state": {
+          "idle": "Idle",
+          "running": "Running",
+          "paused": "Paused",
+          "stopping": "Stopping",
+          "stopped": "Stopped"
+        }
+      },
+      "download_speed": {
+        "name": "Download speed"
+      },
+      "packages": {
+        "name": "Packages"
+      },
+      "links": {
+        "name": "Links"
+      },
+      "online_count": {
+        "name": "JDownloaders online"
+      }
+    },
+    "switch": {
+      "pause": {
+        "name": "Pause"
+      },
+      "limit": {
+        "name": "Limit"
+      }
+    },
+    "update": {
+      "update": {
+        "name": "Update"
+      }
+    }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "Authentication with MyJDownloader failed, please log in again."
+    },
+    "cannot_connect": {
+      "message": "Failed to connect to MyJDownloader: {error}"
+    },
+    "latest_version_failed": {
+      "message": "Failed to fetch the latest JDownloader version: {error}"
+    },
+    "action_failed": {
+      "message": "The action on JDownloader {device} failed."
+    },
+    "rate_limited": {
+      "message": "MyJDownloader asks to slow down, the next update follows in {minutes} minutes."
+    }
+  },
+  "selector": {
+    "priority": {
+      "options": {
+        "default": "Default",
+        "high": "High",
+        "higher": "Higher",
+        "highest": "Highest",
+        "low": "Low",
+        "lower": "Lower",
+        "lowest": "Lowest"
+      }
+    }
+  },
+  "services": {
+    "add_links": {
+      "description": "Add links to LinkGrabber.",
+      "fields": {
+        "auto_extract": {
+          "description": "Extract downloaded archives automatically?",
+          "name": "Auto extract archives"
+        },
+        "autostart": {
+          "description": "Start downloads automatically after adding?",
+          "name": "Autostart"
+        },
+        "destination_folder": {
+          "description": "The destination folder.",
+          "name": "Destination folder"
+        },
+        "download_password": {
+          "description": "The password for the link.",
+          "name": "Download password"
+        },
+        "extract_password": {
+          "description": "The password for archive extraction.",
+          "name": "Extract password"
+        },
+        "links": {
+          "description": "The link(s) to add.",
+          "name": "Links"
+        },
+        "overwrite_packagizer_rules": {
+          "description": "Overwrite packagizer rules?",
+          "name": "Overwrite packagizer rules"
+        },
+        "package_name": {
+          "description": "The name of the package.",
+          "name": "Package name"
+        },
+        "priority": {
+          "description": "The priority of the link(s).",
+          "name": "Priority"
+        }
+      },
+      "name": "Add links"
+    },
+    "restart_and_update": {
+      "description": "Restarts and updates JDownloader.",
+      "name": "Restart and update"
+    },
+    "run_update_check": {
+      "description": "Checks for updates.",
+      "name": "Run update check"
+    },
+    "start_downloads": {
+      "description": "Starts downloading.",
+      "name": "Start"
+    },
+    "stop_downloads": {
+      "description": "Stops downloading.",
+      "name": "Stop"
+    }
+  }
 }

@@ -2,8 +2,9 @@
 
 from unittest.mock import MagicMock
 
-from myjdapi.exception import MYJDConnectionException
+from myjdapi import MYJDAuthFailedException, MYJDConnectionException
 import pytest
+import requests
 
 from custom_components.myjdownloader.const import DOMAIN
 from homeassistant.config_entries import SOURCE_USER
@@ -41,6 +42,8 @@ async def test_user_flow(hass: HomeAssistant, mock_myjdapi: MagicMock) -> None:
     ("side_effect", "error"),
     [
         (MYJDConnectionException("offline"), "cannot_connect"),
+        (requests.ConnectionError("unreachable"), "cannot_connect"),
+        (MYJDAuthFailedException("MYJD"), "invalid_auth"),
         (RuntimeError("boom"), "unknown"),
     ],
 )

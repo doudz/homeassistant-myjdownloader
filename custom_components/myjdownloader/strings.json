@@ -17,15 +17,65 @@
       "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
     }
   },
-  "entity_component": {
-    "_": {
-      "name": "MyJDownloader",
-      "state": {
-        "idle": "[%key:common::state::idle%]",
-        "running": "Running",
-        "paused": "[%key:common::state::paused%]",
-        "stopped": "Stopped"
+  "entity": {
+    "binary_sensor": {
+      "connected": {
+        "name": "Connected"
       }
+    },
+    "sensor": {
+      "status": {
+        "name": "Status",
+        "state": {
+          "idle": "[%key:common::state::idle%]",
+          "running": "Running",
+          "paused": "[%key:common::state::paused%]",
+          "stopping": "Stopping",
+          "stopped": "Stopped"
+        }
+      },
+      "download_speed": {
+        "name": "Download speed"
+      },
+      "packages": {
+        "name": "Packages"
+      },
+      "links": {
+        "name": "Links"
+      },
+      "online_count": {
+        "name": "JDownloaders online"
+      }
+    },
+    "switch": {
+      "pause": {
+        "name": "Pause"
+      },
+      "limit": {
+        "name": "Limit"
+      }
+    },
+    "update": {
+      "update": {
+        "name": "Update"
+      }
+    }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "Authentication with MyJDownloader failed, please log in again."
+    },
+    "cannot_connect": {
+      "message": "Failed to connect to MyJDownloader: {error}"
+    },
+    "latest_version_failed": {
+      "message": "Failed to fetch the latest JDownloader version: {error}"
+    },
+    "action_failed": {
+      "message": "The action on JDownloader {device} failed."
+    },
+    "rate_limited": {
+      "message": "MyJDownloader asks to slow down, the next update follows in {minutes} minutes."
     }
   },
   "services": {

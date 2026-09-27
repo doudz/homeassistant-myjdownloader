@@ -15,7 +15,8 @@ services:
     volumes:
       - ha-config:/config
       - ./configuration.yaml:/config/configuration.yaml:ro
-      - ../custom_components/myjdownloader:/config/custom_components/myjdownloader:ro
+      # INTEGRATION_PATH lets another branch be tested from a git worktree.
+      - ${INTEGRATION_PATH:-../custom_components/myjdownloader}:/config/custom_components/myjdownloader:ro
     restart: unless-stopped
 
   jdownloader:

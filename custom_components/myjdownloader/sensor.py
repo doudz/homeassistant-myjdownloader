@@ -1,27 +1,29 @@
-"""MyJDownloader sensors."""
+"""Sensors of the MyJDownloader integration."""
 
-from __future__ import annotations
-
-import datetime
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 from myjdapi.myjdapi import Jddevice
 import voluptuous as vol
 
-from homeassistant.components.sensor import DOMAIN, SensorEntity, SensorStateClass
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory, UnitOfDataRate
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+    SensorStateClass,
+)
+from homeassistant.const import UnitOfDataRate
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv, entity_platform
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from . import MyJDownloaderHub
+from .api import MyJDownloaderError
 from .const import (
     ATTR_LINKS,
     ATTR_PACKAGES,
-    DATA_MYJDOWNLOADER_CLIENT,
-    DOMAIN as MYJDOWNLOADER_DOMAIN,
+    DOMAIN,
     FIELD_AUTO_EXTRACT,
     FIELD_AUTOSTART,
     FIELD_DESTINATION_FOLDER,
@@ -31,79 +33,122 @@ from .const import (
     FIELD_OVERWRITE_PACKAGIZER_RULES,
     FIELD_PACKAGE_NAME,
     FIELD_PRIORITY,
-    SCAN_INTERVAL_SECONDS,
     SERVICE_ADD_LINKS,
     SERVICE_RESTART_AND_UPDATE,
     SERVICE_RUN_UPDATE_CHECK,
     SERVICE_START_DOWNLOADS,
     SERVICE_STOP_DOWNLOADS,
 )
-from .entities import MyJDownloaderDeviceEntity, MyJDownloaderEntity
+from .coordinator import (
+    STATUS_MAP,
+    DeviceState,
+    MyJDownloaderConfigEntry,
+    MyJDownloaderCoordinator,
+    MyJDownloaderData,
+)
+from .entity import (
+    MyJDownloaderAccountEntity,
+    MyJDownloaderDeviceEntity,
+    async_add_device_entities,
+)
 
-SCAN_INTERVAL = datetime.timedelta(seconds=SCAN_INTERVAL_SECONDS)
+PARALLEL_UPDATES = 0
+
+
+@dataclass(frozen=True, kw_only=True)
+class MyJDownloaderSensorEntityDescription(SensorEntityDescription):
+    """Describes a JDownloader sensor."""
+
+    value_fn: Callable[[DeviceState], Any]
+    attributes_fn: Callable[[DeviceState], dict[str, Any]] | None = None
+    fetch_on_demand: bool = False
+
+
+@dataclass(frozen=True, kw_only=True)
+class MyJDownloaderAccountSensorEntityDescription(SensorEntityDescription):
+    """Describes a MyJDownloader account sensor."""
+
+    value_fn: Callable[[MyJDownloaderData], Any]
+    attributes_fn: Callable[[MyJDownloaderData], dict[str, Any]]
+
+
+SENSORS: tuple[MyJDownloaderSensorEntityDescription, ...] = (
+    MyJDownloaderSensorEntityDescription(
+        key="status",
+        translation_key="status",
+        device_class=SensorDeviceClass.ENUM,
+        options=sorted(set(STATUS_MAP.values())),
+        value_fn=lambda state: state.status,
+    ),
+    MyJDownloaderSensorEntityDescription(
+        key="download_speed",
+        translation_key="download_speed",
+        device_class=SensorDeviceClass.DATA_RATE,
+        native_unit_of_measurement=UnitOfDataRate.MEGABYTES_PER_SECOND,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+        value_fn=lambda state: (
+            round(state.speed / 1_000_000, 2) if state.speed is not None else None
+        ),
+    ),
+    MyJDownloaderSensorEntityDescription(
+        key="packages",
+        translation_key="packages",
+        entity_registry_enabled_default=False,
+        fetch_on_demand=True,
+        value_fn=lambda state: (
+            len(state.packages) if state.packages is not None else None
+        ),
+        attributes_fn=lambda state: {ATTR_PACKAGES: state.packages or []},
+    ),
+    MyJDownloaderSensorEntityDescription(
+        key="links",
+        translation_key="links",
+        entity_registry_enabled_default=False,
+        fetch_on_demand=True,
+        value_fn=lambda state: len(state.links) if state.links is not None else None,
+        attributes_fn=lambda state: {ATTR_LINKS: state.links or []},
+    ),
+)
+
+ONLINE_COUNT = MyJDownloaderAccountSensorEntityDescription(
+    key="online_count",
+    translation_key="online_count",
+    value_fn=lambda data: len(data.online_devices),
+    attributes_fn=lambda data: {
+        "jdownloaders": [device.name for device in data.online_devices],
+        "jdownloader_ids": [device.device_id for device in data.online_devices],
+    },
+)
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-    discovery_info=None,
+    entry: MyJDownloaderConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up the sensor using config entry."""
-    hub = hass.data[MYJDOWNLOADER_DOMAIN][entry.entry_id][DATA_MYJDOWNLOADER_CLIENT]
+    """Set up the MyJDownloader sensors."""
+    coordinator = entry.runtime_data.coordinator
 
-    # This device-less sensor periodically fetches the list of currently online devices
-    async_add_entities([MyJDownloaderJDownloadersOnlineSensor(hub)], True)
-
-    @callback
-    def async_add_sensor(devices=hub.devices):
-        entities = []
-
-        for device_id in devices:
-            if DOMAIN not in hub.devices_platforms[device_id]:
-                hub.devices_platforms[device_id].add(DOMAIN)
-                entities += [
-                    MyJDownloaderDownloadSpeedSensor(hub, device_id),
-                    MyJDownloaderPackagesSensor(hub, device_id),
-                    MyJDownloaderLinksSensor(hub, device_id),
-                    MyJDownloaderStatusSensor(hub, device_id),
-                ]
-
-        if entities:
-            async_add_entities(entities, True)
-
-    entry.async_on_unload(
-        async_dispatcher_connect(
-            hass, f"{MYJDOWNLOADER_DOMAIN}_new_devices", async_add_sensor
-        )
+    async_add_entities([MyJDownloaderAccountSensor(coordinator, ONLINE_COUNT)])
+    async_add_device_entities(
+        coordinator,
+        async_add_entities,
+        lambda device_id: (
+            MyJDownloaderSensor(coordinator, device_id, description)
+            for description in SENSORS
+        ),
     )
 
-    async_add_sensor(hub.devices)
-
-    # device services
-    platform = entity_platform.current_platform.get()
-    assert platform is not None
-
-    platform.async_register_entity_service(
+    # Kept until the services are reworked, see modernization plan phase D.
+    platform = entity_platform.async_get_current_platform()
+    for service in (
         SERVICE_RESTART_AND_UPDATE,
-        {},
-        "restart_and_update",
-    )
-    platform.async_register_entity_service(
         SERVICE_RUN_UPDATE_CHECK,
-        {},
-        "run_update_check",
-    )
-    platform.async_register_entity_service(
         SERVICE_START_DOWNLOADS,
-        {},
-        "start_downloads",
-    )
-    platform.async_register_entity_service(
         SERVICE_STOP_DOWNLOADS,
-        {},
-        "stop_downloads",
-    )
+    ):
+        platform.async_register_entity_service(service, None, f"async_{service}")
     platform.async_register_entity_service(
         SERVICE_ADD_LINKS,
         {
@@ -117,263 +162,123 @@ async def async_setup_entry(
             vol.Optional(FIELD_DESTINATION_FOLDER): cv.string,
             vol.Optional(FIELD_OVERWRITE_PACKAGIZER_RULES): cv.boolean,
         },
-        "add_links",
+        "async_add_links",
     )
 
 
-class MyJDownloaderDeviceSensor(MyJDownloaderDeviceEntity, SensorEntity):
-    """Defines a MyJDownloader device sensor."""
+class MyJDownloaderAccountSensor(MyJDownloaderAccountEntity, SensorEntity):
+    """Sensor of the MyJDownloader account."""
 
-    def __init__(
-        self,
-        hub: MyJDownloaderHub,
-        device_id: str,
-        name_template: str,
-        icon: str | None,
-        measurement: str,
-        unit_of_measurement: str | None,
-        state_class: str | None,
-        entity_category: EntityCategory | None = None,
-        enabled_default: bool = True,
-    ) -> None:
-        """Initialize MyJDownloader sensor."""
-        self._state: str | None = None
-        self._unit_of_measurement = unit_of_measurement
-        self._state_class = state_class
-        self.measurement = measurement
-        super().__init__(
-            hub, device_id, name_template, icon, entity_category, enabled_default
-        )
+    entity_description: MyJDownloaderAccountSensorEntityDescription
 
     @property
-    def unique_id(self) -> str:
-        """Return the unique ID for this sensor."""
-        return f"{MYJDOWNLOADER_DOMAIN}_{self._name}_{DOMAIN}_{self.measurement}"
-
-    @property
-    def native_value(self) -> str | None:
-        """Return the native value of the sensor."""
-        return self._state
-
-    @property
-    def native_unit_of_measurement(self) -> str | None:
-        """Return the unit this entity's native value is expressed in."""
-        return self._unit_of_measurement
-
-    @property
-    def state_class(self) -> str | None:
-        """State class of sensor."""
-        return self._state_class
-
-
-class MyJDownloaderSensor(MyJDownloaderEntity):
-    """Defines a MyJDownloader sensor entity."""
-
-    def __init__(
-        self,
-        hub: MyJDownloaderHub,
-        name: str,
-        icon: str,
-        measurement: str,
-        unit_of_measurement: str | None,
-        state_class: str | None,
-        entity_category: EntityCategory | None = None,
-        enabled_default: bool = True,
-    ) -> None:
-        """Initialize MyJDownloader sensor."""
-        self._state: str | None = None
-        self._unit_of_measurement = unit_of_measurement
-        self._state_class = state_class
-        self.measurement = measurement
-        super().__init__(hub, name, icon, entity_category, enabled_default)
-
-    @property
-    def unique_id(self) -> str:
-        """Return the unique ID for this sensor."""
-        return f"{MYJDOWNLOADER_DOMAIN}_{self._name}_{DOMAIN}_{self.measurement}"
-
-    @property
-    def state(self) -> str | None:
+    def native_value(self) -> Any:
         """Return the state of the sensor."""
-        return self._state
-
-    @property
-    def unit_of_measurement(self) -> str | None:
-        """Return the unit this state is expressed in."""
-        return self._unit_of_measurement
-
-    @property
-    def state_class(self) -> str | None:
-        """State class of sensor."""
-        return self._state_class
-
-
-class MyJDownloaderJDownloadersOnlineSensor(MyJDownloaderSensor):
-    """Defines a MyJDownloader JDownloaders Online sensor."""
-
-    def __init__(
-        self,
-        hub: MyJDownloaderHub,
-    ) -> None:
-        """Initialize MyJDownloader sensor."""
-        super().__init__(
-            hub, "JDownloaders Online", "mdi:download-multiple", "number", None, None
-        )
-        self.devices: dict[str, Jddevice] = {}
-
-    async def _myjdownloader_update(self) -> None:
-        """Update MyJDownloader entity."""
-        await self.hub.async_update_devices()
-        self.devices = self.hub.devices
-        self._state = str(len(self.devices))
+        return self.entity_description.value_fn(self.coordinator.data)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        devices = sorted(self.devices.values(), key=lambda x: x.name)
-        return {
-            "jdownloaders": [device.name for device in devices],
-            "jdownloader_ids": [device.device_id for device in devices],
-        }
+        return self.entity_description.attributes_fn(self.coordinator.data)
 
 
-class MyJDownloaderDownloadSpeedSensor(MyJDownloaderDeviceSensor):
-    """Defines a MyJDownloader download speed sensor."""
+class MyJDownloaderSensor(MyJDownloaderDeviceEntity, SensorEntity):
+    """Sensor of a JDownloader."""
 
-    def __init__(
-        self,
-        hub: MyJDownloaderHub,
-        device_id: str,
-    ) -> None:
-        """Initialize MyJDownloader sensor."""
-        super().__init__(
-            hub,
-            device_id,
-            "JDownloader $device_name Download Speed",
-            "mdi:download",
-            "download_speed",
-            UnitOfDataRate.MEGABYTES_PER_SECOND,
-            SensorStateClass.MEASUREMENT,
-        )
-
-    async def _myjdownloader_update(self) -> None:
-        """Update MyJDownloader entity."""
-        device = self.hub.get_device(self._device_id)
-        self._state = round(
-            await self.hub.async_query(device.downloadcontroller.get_speed_in_bytes)
-            / 1_000_000,
-            2,
-        )
-
-
-class MyJDownloaderPackagesSensor(MyJDownloaderDeviceSensor):
-    """Defines a MyJDownloader packages sensor."""
+    entity_description: MyJDownloaderSensorEntityDescription
+    # The full package and link lists can be large, keep them out of the recorder.
+    _unrecorded_attributes = frozenset({ATTR_PACKAGES, ATTR_LINKS})
 
     def __init__(
         self,
-        hub: MyJDownloaderHub,
+        coordinator: MyJDownloaderCoordinator,
         device_id: str,
+        description: MyJDownloaderSensorEntityDescription,
     ) -> None:
-        """Initialize MyJDownloader sensor."""
-        self._packages_list: list = []
+        """Initialize the sensor."""
         super().__init__(
-            hub,
+            coordinator,
             device_id,
-            "JDownloader $device_name Packages",
-            "mdi:package-down",
-            "packages",
-            None,
-            None,
-            None,
-            False,
+            description,
+            fetch_on_demand=description.fetch_on_demand,
         )
 
-    async def _myjdownloader_update(self) -> None:
-        """Update MyJDownloader entity."""
-        device = self.hub.get_device(self._device_id)
-        self._packages_list = await self.hub.async_query(
-            device.downloads.query_packages
-        )
-        self._state = str(len(self._packages_list))
+    async def async_added_to_hass(self) -> None:
+        """Fetch on-demand data right away instead of waiting for the next poll."""
+        await super().async_added_to_hass()
+        if (
+            self.entity_description.fetch_on_demand
+            and self.entity_description.value_fn(self.device_state) is None
+        ):
+            await self.coordinator.async_request_refresh()
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any]:
+    def native_value(self) -> Any:
+        """Return the state of the sensor."""
+        return self.entity_description.value_fn(self.device_state)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return the state attributes."""
-        return {ATTR_PACKAGES: self._packages_list}
+        if self.entity_description.attributes_fn is None:
+            return None
+        return self.entity_description.attributes_fn(self.device_state)
 
+    async def _async_device_action(self, func: Callable[[Jddevice], Any]) -> None:
+        """Run an action on the JDownloader and refresh afterwards."""
+        try:
+            await self.coordinator.client.async_device_call(self._device_id, func)
+        except MyJDownloaderError as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="action_failed",
+                translation_placeholders={"device": self.device_state.name},
+            ) from err
+        await self.coordinator.async_request_refresh()
 
-class MyJDownloaderLinksSensor(MyJDownloaderDeviceSensor):
-    """Defines a MyJDownloader links sensor."""
+    async def async_restart_and_update(self) -> None:
+        """Restart and update JDownloader."""
+        await self._async_device_action(lambda d: d.update.restart_and_update())
 
-    def __init__(
-        self,
-        hub: MyJDownloaderHub,
-        device_id: str,
-    ) -> None:
-        """Initialize MyJDownloader sensor."""
-        self._links_list: list = []
-        super().__init__(
-            hub,
-            device_id,
-            "JDownloader $device_name Links",
-            "mdi:link-box",
-            "links",
-            None,
-            None,
-            None,
-            False,
+    async def async_run_update_check(self) -> None:
+        """Run the update check of JDownloader."""
+        await self._async_device_action(lambda d: d.update.run_update_check())
+
+    async def async_start_downloads(self) -> None:
+        """Start downloads."""
+        await self._async_device_action(
+            lambda d: d.downloadcontroller.start_downloads()
         )
 
-    async def _myjdownloader_update(self) -> None:
-        """Update MyJDownloader entity."""
-        device = self.hub.get_device(self._device_id)
-        self._links_list = await self.hub.async_query(device.downloads.query_links)
-        self._state = str(len(self._links_list))
+    async def async_stop_downloads(self) -> None:
+        """Stop downloads."""
+        await self._async_device_action(lambda d: d.downloadcontroller.stop_downloads())
 
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return the state attributes."""
-        return {ATTR_LINKS: self._links_list}
-
-
-class MyJDownloaderStatusSensor(MyJDownloaderDeviceSensor):
-    """Defines a MyJDownloader status sensor."""
-
-    STATE_ICONS = {
-        "idle": "mdi:stop",
-        "running": "mdi:play",
-        "paused": "mdi:pause",
-        "stopped": "mdi:stop",
-    }
-
-    def __init__(
+    async def async_add_links(
         self,
-        hub: MyJDownloaderHub,
-        device_id: str,
+        links: list[str],
+        priority: str,
+        auto_extract: bool = False,
+        autostart: bool = False,
+        destination_folder: str | None = None,
+        download_password: str | None = None,
+        extract_password: str | None = None,
+        overwrite_packagizer_rules: bool = False,
+        package_name: str | None = None,
     ) -> None:
-        """Initialize MyJDownloader sensor."""
-        super().__init__(
-            hub,
-            device_id,
-            "JDownloader $device_name Status",
-            "mdi:play-pause",
-            "status",
-            None,
-            None,
-        )
-
-    @property
-    def icon(self) -> str | None:
-        """Return the mdi icon of the entity."""
-        if self._state:
-            return MyJDownloaderStatusSensor.STATE_ICONS.get(self._state, self._icon)
-        return self._icon
-
-    async def _myjdownloader_update(self) -> None:
-        """Update MyJDownloader entity."""
-        device = self.hub.get_device(self._device_id)
-        status = await self.hub.async_query(device.downloadcontroller.get_current_state)
-        status = status.lower()
-        status = status.replace("_state", "")  # stopped_state -> stopped
-        status = "paused" if status == "pause" else status  # pause -> paused
-        self._state = status
+        """Add links to the LinkGrabber."""
+        # https://my.jdownloader.org/developers/index.html#tag_244
+        params = [
+            {
+                "autoExtract": auto_extract,
+                "autostart": autostart,
+                "destinationFolder": destination_folder,
+                "downloadPassword": download_password,
+                "extractPassword": extract_password,
+                "links": "\n".join(links),
+                "overwritePackagizerRules": overwrite_packagizer_rules,
+                "packageName": package_name,
+                "priority": priority.upper(),
+            }
+        ]
+        await self._async_device_action(lambda d: d.linkgrabber.add_links(params))
