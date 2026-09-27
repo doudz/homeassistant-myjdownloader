@@ -5,9 +5,11 @@ from typing import Any
 
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, Platform
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ConfigEntryError
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from .api import MyJDownloaderClient
+from .config_flow import account_id
 from .const import (
     DOMAIN,
     SERVICE_ADD_LINKS,
@@ -51,6 +53,14 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: MyJDownloaderConfigEntry
 ) -> bool:
     """Set up MyJDownloader from a config entry."""
+    if entry.unique_id is None and any(
+        other.unique_id == account_id(entry.data[CONF_EMAIL])
+        for other in hass.config_entries.async_entries(DOMAIN)
+    ):
+        # A duplicate from before 3.0; its entities would clash with the others.
+        raise ConfigEntryError(
+            translation_domain=DOMAIN, translation_key="duplicate_account"
+        )
     client = MyJDownloaderClient(
         hass, entry.data[CONF_EMAIL], entry.data[CONF_PASSWORD]
     )
@@ -154,7 +164,7 @@ async def async_migrate_entry(
 
         unique_id = entry.unique_id
         if unique_id is None:
-            email = entry.data[CONF_EMAIL].strip().lower()
+            email = account_id(entry.data[CONF_EMAIL])
             if any(
                 other.unique_id == email
                 for other in hass.config_entries.async_entries(DOMAIN)

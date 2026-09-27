@@ -1,20 +1,49 @@
 {
   "config": {
-    "abort": {
-      "already_configured": "Device is already configured"
+    "step": {
+      "user": {
+        "description": "Log in with your MyJDownloader account. Your JDownloaders connected to this account are added as devices.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        },
+        "data_description": {
+          "email": "The email address of your MyJDownloader account.",
+          "password": "The password of your MyJDownloader account."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Authentication expired for {name}",
+        "description": "The password of the MyJDownloader account {email} is no longer valid. Enter the current password.",
+        "data": {
+          "password": "Password"
+        },
+        "data_description": {
+          "password": "The password of your MyJDownloader account."
+        }
+      },
+      "reconfigure": {
+        "description": "Update the credentials of your MyJDownloader account.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        },
+        "data_description": {
+          "email": "The email address of your MyJDownloader account.",
+          "password": "The password of your MyJDownloader account."
+        }
+      }
     },
     "error": {
       "cannot_connect": "Failed to connect",
       "invalid_auth": "Invalid authentication",
       "unknown": "Unexpected error"
     },
-    "step": {
-      "user": {
-        "data": {
-          "email": "Email",
-          "password": "Password"
-        }
-      }
+    "abort": {
+      "already_configured": "Account is already configured",
+      "reauth_successful": "Re-authentication was successful",
+      "reconfigure_successful": "Re-configuration was successful",
+      "wrong_account": "The credentials belong to a different MyJDownloader account. Add it as a new entry instead."
     }
   },
   "entity": {
@@ -73,6 +102,9 @@
     },
     "action_failed": {
       "message": "The action on JDownloader {device} failed."
+    },
+    "duplicate_account": {
+      "message": "Another entry already uses this MyJDownloader account. Delete this entry."
     },
     "rate_limited": {
       "message": "MyJDownloader asks to slow down, the next update follows in {minutes} minutes."

@@ -4,7 +4,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from myjdapi.myjdapi import Jddevice
 import voluptuous as vol
 
 from homeassistant.components.sensor import (
@@ -15,15 +14,12 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import UnitOfDataRate
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .api import MyJDownloaderError
 from .const import (
     ATTR_LINKS,
     ATTR_PACKAGES,
-    DOMAIN,
     FIELD_AUTO_EXTRACT,
     FIELD_AUTOSTART,
     FIELD_DESTINATION_FOLDER,
@@ -224,35 +220,21 @@ class MyJDownloaderSensor(MyJDownloaderDeviceEntity, SensorEntity):
             return None
         return self.entity_description.attributes_fn(self.device_state)
 
-    async def _async_device_action(self, func: Callable[[Jddevice], Any]) -> None:
-        """Run an action on the JDownloader and refresh afterwards."""
-        try:
-            await self.coordinator.client.async_device_call(self._device_id, func)
-        except MyJDownloaderError as err:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="action_failed",
-                translation_placeholders={"device": self.device_state.name},
-            ) from err
-        await self.coordinator.async_request_refresh()
-
     async def async_restart_and_update(self) -> None:
         """Restart and update JDownloader."""
-        await self._async_device_action(lambda d: d.update.restart_and_update())
+        await self.async_device_action(lambda d: d.update.restart_and_update())
 
     async def async_run_update_check(self) -> None:
         """Run the update check of JDownloader."""
-        await self._async_device_action(lambda d: d.update.run_update_check())
+        await self.async_device_action(lambda d: d.update.run_update_check())
 
     async def async_start_downloads(self) -> None:
         """Start downloads."""
-        await self._async_device_action(
-            lambda d: d.downloadcontroller.start_downloads()
-        )
+        await self.async_device_action(lambda d: d.downloadcontroller.start_downloads())
 
     async def async_stop_downloads(self) -> None:
         """Stop downloads."""
-        await self._async_device_action(lambda d: d.downloadcontroller.stop_downloads())
+        await self.async_device_action(lambda d: d.downloadcontroller.stop_downloads())
 
     async def async_add_links(
         self,
@@ -281,4 +263,4 @@ class MyJDownloaderSensor(MyJDownloaderDeviceEntity, SensorEntity):
                 "priority": priority.upper(),
             }
         ]
-        await self._async_device_action(lambda d: d.linkgrabber.add_links(params))
+        await self.async_device_action(lambda d: d.linkgrabber.add_links(params))

@@ -1,13 +1,18 @@
 """Base entities for the MyJDownloader integration."""
 
 from collections.abc import Callable, Iterable
+from typing import Any
+
+from myjdapi.myjdapi import Jddevice
 
 from homeassistant.core import callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity import Entity, EntityDescription
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .api import MyJDownloaderAuthError, MyJDownloaderError
 from .const import DOMAIN
 from .coordinator import DeviceState, MyJDownloaderCoordinator
 
@@ -111,3 +116,20 @@ class MyJDownloaderDeviceEntity(MyJDownloaderEntity):
     def available(self) -> bool:
         """Return if the JDownloader is reachable."""
         return super().available and self.device_state.available
+
+    async def async_device_action(self, func: Callable[[Jddevice], Any]) -> None:
+        """Run an action on the JDownloader and refresh the state afterwards."""
+        try:
+            await self.coordinator.client.async_device_call(self._device_id, func)
+        except MyJDownloaderAuthError as err:
+            self.coordinator.config_entry.async_start_reauth(self.hass)
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="auth_failed"
+            ) from err
+        except MyJDownloaderError as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="action_failed",
+                translation_placeholders={"device": self.device_state.name},
+            ) from err
+        await self.coordinator.async_request_refresh()

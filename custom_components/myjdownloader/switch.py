@@ -8,11 +8,8 @@ from myjdapi.myjdapi import Jddevice
 
 from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .api import MyJDownloaderError
-from .const import DOMAIN
 from .coordinator import DeviceState, MyJDownloaderConfigEntry
 from .entity import MyJDownloaderDeviceEntity, async_add_device_entities
 
@@ -77,19 +74,8 @@ class MyJDownloaderSwitch(MyJDownloaderDeviceEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
-        await self._async_set(self.entity_description.turn_on_fn)
+        await self.async_device_action(self.entity_description.turn_on_fn)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
-        await self._async_set(self.entity_description.turn_off_fn)
-
-    async def _async_set(self, func: Callable[[Jddevice], Any]) -> None:
-        try:
-            await self.coordinator.client.async_device_call(self._device_id, func)
-        except MyJDownloaderError as err:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="action_failed",
-                translation_placeholders={"device": self.device_state.name},
-            ) from err
-        await self.coordinator.async_request_refresh()
+        await self.async_device_action(self.entity_description.turn_off_fn)

@@ -9,11 +9,8 @@ from homeassistant.components.update import (
 )
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .api import MyJDownloaderError
-from .const import DOMAIN
 from .coordinator import (
     JDownloaderLatestVersionCoordinator,
     MyJDownloaderConfigEntry,
@@ -96,14 +93,4 @@ class MyJDownloaderUpdate(MyJDownloaderDeviceEntity, UpdateEntity):
         self, version: str | None, backup: bool, **kwargs: Any
     ) -> None:
         """Restart JDownloader and install the update."""
-        try:
-            await self.coordinator.client.async_device_call(
-                self._device_id, lambda d: d.update.restart_and_update()
-            )
-        except MyJDownloaderError as err:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="action_failed",
-                translation_placeholders={"device": self.device_state.name},
-            ) from err
-        await self.coordinator.async_request_refresh()
+        await self.async_device_action(lambda d: d.update.restart_and_update())
