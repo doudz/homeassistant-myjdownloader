@@ -8,7 +8,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.syrupy import HomeAssistantSnapshotExtension
 from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
+from syrupy.assertion import SnapshotAssertion
 
 from custom_components.myjdownloader.const import DOMAIN, LATEST_VERSION_URL
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
@@ -28,6 +30,17 @@ def load_json_fixture(name: str) -> Any:
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Enable loading custom integrations in all tests."""
+
+
+@pytest.fixture
+def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
+    """Return the snapshot fixture with the Home Assistant extension.
+
+    Both syrupy and pytest-homeassistant-custom-component define a snapshot
+    fixture; which plugin wins depends on the install order. A conftest fixture
+    always wins, so snapshots are always stored in tests/snapshots.
+    """
+    return snapshot.use_extension(HomeAssistantSnapshotExtension)
 
 
 @pytest.fixture

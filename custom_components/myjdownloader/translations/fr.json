@@ -1,20 +1,250 @@
 {
-    "config": {
-        "abort": {
-            "already_configured": "Cet appareil est déjà configuré"
+  "config": {
+    "step": {
+      "user": {
+        "description": "Connectez-vous avec votre compte MyJDownloader. Les JDownloaders connectés à ce compte sont ajoutés en tant qu'appareils.",
+        "data": {
+          "email": "Email",
+          "password": "Mot de passe"
         },
-        "error": {
-            "cannot_connect": "Échec de la connexion",
-            "invalid_auth": "Authentification invalide",
-            "unknown": "Erreur inconnue"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "email": "Email",
-                    "password": "Mot de passe"
-                }
-            }
+        "data_description": {
+          "email": "L'adresse e-mail de votre compte MyJDownloader.",
+          "password": "Le mot de passe de votre compte MyJDownloader."
         }
+      },
+      "reauth_confirm": {
+        "title": "Authentification expirée pour {name}",
+        "description": "Le mot de passe du compte MyJDownloader {email} n'est plus valide. Entrez le mot de passe actuel.",
+        "data": {
+          "password": "Mot de passe"
+        },
+        "data_description": {
+          "password": "Le mot de passe de votre compte MyJDownloader."
+        }
+      },
+      "reconfigure": {
+        "description": "Mettez à jour les identifiants de votre compte MyJDownloader.",
+        "data": {
+          "email": "Email",
+          "password": "Mot de passe"
+        },
+        "data_description": {
+          "email": "L'adresse e-mail de votre compte MyJDownloader.",
+          "password": "Le mot de passe de votre compte MyJDownloader."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Échec de la connexion",
+      "invalid_auth": "Authentification invalide",
+      "unknown": "Erreur inconnue"
+    },
+    "abort": {
+      "already_configured": "Le compte est déjà configuré",
+      "reauth_successful": "La réauthentification a réussi",
+      "reconfigure_successful": "La reconfiguration a réussi",
+      "wrong_account": "Les identifiants appartiennent à un autre compte MyJDownloader. Ajoutez-le en tant qu'entrée distincte."
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "connected": {
+        "name": "Connecté"
+      }
+    },
+    "button": {
+      "start_downloads": {
+        "name": "Démarrer les téléchargements"
+      },
+      "stop_downloads": {
+        "name": "Arrêter les téléchargements"
+      },
+      "run_update_check": {
+        "name": "Vérifier les mises à jour"
+      }
+    },
+    "sensor": {
+      "status": {
+        "name": "État",
+        "state": {
+          "idle": "Inactif",
+          "running": "En cours",
+          "paused": "En pause",
+          "stopping": "Arrêt en cours",
+          "stopped": "Arrêté"
+        }
+      },
+      "download_speed": {
+        "name": "Vitesse de téléchargement"
+      },
+      "packages": {
+        "name": "Paquets"
+      },
+      "links": {
+        "name": "Liens"
+      },
+      "online_count": {
+        "name": "JDownloaders en ligne"
+      }
+    },
+    "switch": {
+      "pause": {
+        "name": "Pause"
+      },
+      "limit": {
+        "name": "Limite"
+      }
+    },
+    "update": {
+      "update": {
+        "name": "Mise à jour"
+      }
+    }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "L'authentification auprès de MyJDownloader a échoué, veuillez vous reconnecter."
+    },
+    "cannot_connect": {
+      "message": "Échec de la connexion à MyJDownloader : {error}"
+    },
+    "latest_version_failed": {
+      "message": "Échec de la récupération de la dernière version de JDownloader : {error}"
+    },
+    "action_failed": {
+      "message": "L'action sur le JDownloader {device} a échoué."
+    },
+    "device_not_found": {
+      "message": "L'appareil {device_id} n'est pas un JDownloader de l'intégration MyJDownloader."
+    },
+    "entity_not_found": {
+      "message": "L'entité {entity_id} n'appartient à aucun JDownloader de l'intégration MyJDownloader."
+    },
+    "entry_not_loaded": {
+      "message": "Le compte MyJDownloader de {device} n'est pas chargé."
+    },
+    "device_offline": {
+      "message": "Le JDownloader {device} n'est pas connecté à MyJDownloader."
+    },
+    "duplicate_account": {
+      "message": "Une autre entrée utilise déjà ce compte MyJDownloader. Supprimez cette entrée."
+    },
+    "rate_limited": {
+      "message": "MyJDownloader demande de ralentir, la prochaine mise à jour aura lieu dans {minutes} minutes."
+    },
+    "rate_limited_action": {
+      "message": "MyJDownloader demande de ralentir, réessayez dans quelques minutes."
+    }
+  },
+  "issues": {
+    "deprecated_service": {
+      "title": "L'action {service} est obsolète",
+      "description": "L'action `{service}` sera supprimée dans la version 3.2 de l'intégration MyJDownloader. Utilisez {replacement} à la place et mettez à jour vos automatisations et scripts."
+    },
+    "deprecated_entity_target": {
+      "title": "Le ciblage d'entités dans {service} est obsolète",
+      "description": "L'action `{service}` a été appelée avec une entité comme cible. Sélectionnez le JDownloader avec le champ `device_id` à la place ; les cibles entité cesseront de fonctionner dans la version 3.2."
+    }
+  },
+  "selector": {
+    "priority": {
+      "options": {
+        "default": "Par défaut",
+        "high": "Haute",
+        "higher": "Plus haute",
+        "highest": "La plus haute",
+        "low": "Basse",
+        "lower": "Plus basse",
+        "lowest": "La plus basse"
+      }
+    }
+  },
+  "services": {
+    "add_links": {
+      "description": "Ajoute des liens à LinkGrabber.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "Le JDownloader sur lequel exécuter l'action."
+        },
+        "auto_extract": {
+          "description": "Extraire automatiquement les archives téléchargées ?",
+          "name": "Extraction automatique des archives"
+        },
+        "autostart": {
+          "description": "Démarrer automatiquement les téléchargements après l'ajout ?",
+          "name": "Démarrage automatique"
+        },
+        "destination_folder": {
+          "description": "Le dossier de destination.",
+          "name": "Dossier de destination"
+        },
+        "download_password": {
+          "description": "Le mot de passe du lien.",
+          "name": "Mot de passe de téléchargement"
+        },
+        "extract_password": {
+          "description": "Le mot de passe pour l'extraction des archives.",
+          "name": "Mot de passe d'extraction"
+        },
+        "links": {
+          "description": "Les liens à ajouter : http(s), magnet, ftp, liens de conteneur ou texte contenant des liens.",
+          "name": "Liens"
+        },
+        "overwrite_packagizer_rules": {
+          "description": "Écraser les règles de packagizer ?",
+          "name": "Écraser les règles de packagizer"
+        },
+        "package_name": {
+          "description": "Le nom du paquet.",
+          "name": "Nom du paquet"
+        },
+        "priority": {
+          "description": "La priorité du(des) lien(s).",
+          "name": "Priorité"
+        }
+      },
+      "name": "Ajouter des liens"
+    },
+    "restart_and_update": {
+      "name": "Redémarrer et mettre à jour (obsolète)",
+      "description": "Redémarre et met à jour JDownloader. Obsolète, sera supprimé dans la version 3.2. Utilisez l'action d'installation de l'entité de mise à jour à la place.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "Le JDownloader sur lequel exécuter l'action."
+        }
+      }
+    },
+    "run_update_check": {
+      "name": "Vérifier les mises à jour (obsolète)",
+      "description": "Vérifie la présence de mises à jour. Obsolète, sera supprimé dans la version 3.2. Utilisez le bouton Vérifier les mises à jour à la place.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "Le JDownloader sur lequel exécuter l'action."
+        }
+      }
+    },
+    "start_downloads": {
+      "name": "Démarrer les téléchargements (obsolète)",
+      "description": "Démarre les téléchargements. Obsolète, sera supprimé dans la version 3.2. Utilisez le bouton Démarrer les téléchargements à la place.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "Le JDownloader sur lequel exécuter l'action."
+        }
+      }
+    },
+    "stop_downloads": {
+      "name": "Arrêter les téléchargements (obsolète)",
+      "description": "Arrête les téléchargements. Obsolète, sera supprimé dans la version 3.2. Utilisez le bouton Arrêter les téléchargements à la place.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "Le JDownloader sur lequel exécuter l'action."
+        }
+      }
+    }
+  }
 }

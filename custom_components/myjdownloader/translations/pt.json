@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "description": "Faça login com sua conta MyJDownloader. Os JDownloaders conectados a esta conta são adicionados como dispositivos.",
+        "description": "Inicie sessão na sua conta MyJDownloader. Os JDownloaders ligados a esta conta são adicionados como dispositivos.",
         "data": {
           "email": "E-mail",
           "password": "Senha"
@@ -14,7 +14,7 @@
       },
       "reauth_confirm": {
         "title": "Autenticação expirada para {name}",
-        "description": "A senha da conta MyJDownloader {email} não é mais válida. Insira a senha atual.",
+        "description": "A senha da conta MyJDownloader {email} já não é válida. Introduza a senha atual.",
         "data": {
           "password": "Senha"
         },
@@ -35,7 +35,7 @@
       }
     },
     "error": {
-      "cannot_connect": "Falhou ao se conectar",
+      "cannot_connect": "Falhou a ligação",
       "invalid_auth": "Autenticação inválida",
       "unknown": "Erro inesperado"
     },
@@ -43,21 +43,21 @@
       "already_configured": "A conta já está configurada",
       "reauth_successful": "A reautenticação foi bem-sucedida",
       "reconfigure_successful": "A reconfiguração foi bem-sucedida",
-      "wrong_account": "As credenciais pertencem a outra conta MyJDownloader. Adicione-a como uma nova entrada."
+      "wrong_account": "As credenciais pertencem a uma conta MyJDownloader diferente. Adicione-a como uma nova entrada."
     }
   },
   "entity": {
     "binary_sensor": {
       "connected": {
-        "name": "Conectado"
+        "name": "Ligado"
       }
     },
     "button": {
       "start_downloads": {
-        "name": "Iniciar downloads"
+        "name": "Iniciar transferências"
       },
       "stop_downloads": {
-        "name": "Parar downloads"
+        "name": "Parar transferências"
       },
       "run_update_check": {
         "name": "Verificar atualizações"
@@ -65,23 +65,23 @@
     },
     "sensor": {
       "status": {
-        "name": "Status",
+        "name": "Estado",
         "state": {
-          "idle": "Ocioso",
+          "idle": "Inativo",
           "running": "Em execução",
-          "paused": "Pausado",
-          "stopping": "Parando",
+          "paused": "Em pausa",
+          "stopping": "A parar",
           "stopped": "Parado"
         }
       },
       "download_speed": {
-        "name": "Velocidade de download"
+        "name": "Velocidade de transferência"
       },
       "packages": {
         "name": "Pacotes"
       },
       "links": {
-        "name": "Links"
+        "name": "Ligações"
       },
       "online_count": {
         "name": "JDownloaders online"
@@ -103,10 +103,10 @@
   },
   "exceptions": {
     "auth_failed": {
-      "message": "A autenticação com o MyJDownloader falhou, faça login novamente."
+      "message": "A autenticação com o MyJDownloader falhou, inicie sessão novamente."
     },
     "cannot_connect": {
-      "message": "Falha ao conectar ao MyJDownloader: {error}"
+      "message": "Falha ao ligar ao MyJDownloader: {error}"
     },
     "latest_version_failed": {
       "message": "Falha ao obter a última versão do JDownloader: {error}"
@@ -124,55 +124,55 @@
       "message": "A conta MyJDownloader de {device} não está carregada."
     },
     "device_offline": {
-      "message": "O JDownloader {device} não está conectado ao MyJDownloader."
+      "message": "O JDownloader {device} não está ligado ao MyJDownloader."
     },
     "duplicate_account": {
-      "message": "Outra entrada já usa esta conta do MyJDownloader. Exclua esta entrada."
+      "message": "Outra entrada já utiliza esta conta do MyJDownloader. Elimine esta entrada."
     },
     "rate_limited": {
-      "message": "O MyJDownloader pede menos solicitações; a próxima atualização ocorrerá em {minutes} minutos."
+      "message": "O MyJDownloader pede menos pedidos; a próxima atualização ocorrerá dentro de {minutes} minutos."
     },
     "rate_limited_action": {
-      "message": "O MyJDownloader pede menos solicitações; tente novamente em alguns minutos."
+      "message": "O MyJDownloader pede menos pedidos; tente novamente dentro de alguns minutos."
     }
   },
   "issues": {
     "deprecated_service": {
       "title": "A ação {service} está obsoleta",
-      "description": "A ação `{service}` será removida na versão 3.2 da integração MyJDownloader. Use {replacement} no lugar e atualize suas automações e scripts."
+      "description": "A ação `{service}` será removida na versão 3.2 da integração MyJDownloader. Utilize {replacement} em vez disso e atualize as suas automações e scripts."
     },
     "deprecated_entity_target": {
-      "title": "O uso de entidades como alvo em {service} está obsoleto",
-      "description": "A ação `{service}` foi chamada com uma entidade como alvo. Selecione o JDownloader com o campo `device_id` no lugar; os alvos de entidade deixarão de funcionar na versão 3.2."
+      "title": "O direcionamento de entidades em {service} está obsoleto",
+      "description": "A ação `{service}` foi chamada com uma entidade como alvo. Seleccione o JDownloader com o campo `device_id` em vez disso; os alvos de entidade deixarão de funcionar na versão 3.2."
     }
   },
   "selector": {
     "priority": {
       "options": {
-        "default": "Padrão",
-        "high": "Alta",
-        "higher": "Mais alta",
-        "highest": "Muito alta",
-        "low": "Baixa",
-        "lower": "Mais baixa",
-        "lowest": "Muito baixa"
+        "default": "Predefinido",
+        "high": "Alto",
+        "higher": "Mais alto",
+        "highest": "Muito alto",
+        "low": "Baixo",
+        "lower": "Mais baixo",
+        "lowest": "Muito baixo"
       }
     }
   },
   "services": {
     "add_links": {
-      "description": "Adiciona links ao LinkGrabber.",
+      "description": "Adiciona ligações ao LinkGrabber.",
       "fields": {
         "device_id": {
           "name": "JDownloader",
-          "description": "O JDownloader no qual executar a ação."
+          "description": "O JDownloader em que executar a ação."
         },
         "auto_extract": {
-          "description": "Extrair arquivos baixados automaticamente?",
-          "name": "Extração automática de arquivos"
+          "description": "Extrair ficheiros transferidos automaticamente?",
+          "name": "Extração automática de ficheiros"
         },
         "autostart": {
-          "description": "Iniciar downloads automaticamente após adicionar?",
+          "description": "Iniciar transferências automaticamente após adicionar?",
           "name": "Início automático"
         },
         "destination_folder": {
@@ -180,16 +180,16 @@
           "name": "Pasta de destino"
         },
         "download_password": {
-          "description": "A senha do link.",
-          "name": "Senha de download"
+          "description": "A senha da ligação.",
+          "name": "Senha de transferência"
         },
         "extract_password": {
-          "description": "A senha para extração de arquivos.",
+          "description": "A senha para extração de ficheiros.",
           "name": "Senha de extração"
         },
         "links": {
-          "description": "Os links a adicionar: http(s), magnet, ftp, links de contêiner ou texto com links.",
-          "name": "Links"
+          "description": "As ligações a adicionar: http(s), magnet, ftp, ligações de contentor ou texto com ligações.",
+          "name": "Ligações"
         },
         "overwrite_packagizer_rules": {
           "description": "Substituir as regras do packagizer?",
@@ -200,49 +200,49 @@
           "name": "Nome do pacote"
         },
         "priority": {
-          "description": "A prioridade do(s) link(s).",
+          "description": "A prioridade da(s) ligação(ões).",
           "name": "Prioridade"
         }
       },
-      "name": "Adicionar links"
+      "name": "Adicionar ligações"
     },
     "restart_and_update": {
       "name": "Reiniciar e atualizar (obsoleto)",
-      "description": "Reinicia e atualiza o JDownloader. Obsoleto, será removido na versão 3.2. Use a ação de instalação da entidade de atualização no lugar.",
+      "description": "Reinicia e atualiza o JDownloader. Obsoleto, será removido na versão 3.2. Utilize a ação de instalação da entidade de atualização em vez disso.",
       "fields": {
         "device_id": {
           "name": "JDownloader",
-          "description": "O JDownloader no qual executar a ação."
+          "description": "O JDownloader em que executar a ação."
         }
       }
     },
     "run_update_check": {
       "name": "Verificar atualizações (obsoleto)",
-      "description": "Verifica se há atualizações. Obsoleto, será removido na versão 3.2. Use o botão Verificar atualizações no lugar.",
+      "description": "Verifica se existem atualizações. Obsoleto, será removido na versão 3.2. Utilize o botão Verificar atualizações em vez disso.",
       "fields": {
         "device_id": {
           "name": "JDownloader",
-          "description": "O JDownloader no qual executar a ação."
+          "description": "O JDownloader em que executar a ação."
         }
       }
     },
     "start_downloads": {
-      "name": "Iniciar downloads (obsoleto)",
-      "description": "Inicia os downloads. Obsoleto, será removido na versão 3.2. Use o botão Iniciar downloads no lugar.",
+      "name": "Iniciar transferências (obsoleto)",
+      "description": "Inicia as transferências. Obsoleto, será removido na versão 3.2. Utilize o botão Iniciar transferências em vez disso.",
       "fields": {
         "device_id": {
           "name": "JDownloader",
-          "description": "O JDownloader no qual executar a ação."
+          "description": "O JDownloader em que executar a ação."
         }
       }
     },
     "stop_downloads": {
-      "name": "Parar downloads (obsoleto)",
-      "description": "Para os downloads. Obsoleto, será removido na versão 3.2. Use o botão Parar downloads no lugar.",
+      "name": "Parar transferências (obsoleto)",
+      "description": "Para as transferências. Obsoleto, será removido na versão 3.2. Utilize o botão Parar transferências em vez disso.",
       "fields": {
         "device_id": {
           "name": "JDownloader",
-          "description": "O JDownloader no qual executar a ação."
+          "description": "O JDownloader em que executar a ação."
         }
       }
     }

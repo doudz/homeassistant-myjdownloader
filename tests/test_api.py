@@ -1,11 +1,16 @@
 """Tests for the myjdapi client wrapper."""
 
+import json
 import logging
 from unittest.mock import MagicMock
 
 from myjdapi import MYJDAuthFailedException
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.components.diagnostics import (
+    get_diagnostics_for_config_entry,
+)
+from pytest_homeassistant_custom_component.typing import ClientSessionGenerator
 import requests
 
 from homeassistant.core import HomeAssistant
@@ -55,11 +60,12 @@ async def test_auth_error_scrubbed(
 
 async def test_connection_error_scrubbed(
     hass: HomeAssistant,
+    hass_client: ClientSessionGenerator,
     init_integration: MockConfigEntry,
     mock_myjdapi: MagicMock,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Test session tokens of a failed request are not logged."""
+    """Test session tokens of a failed request are not logged or in diagnostics."""
     caplog.set_level(logging.DEBUG)
     mock_myjdapi.update_devices.side_effect = requests.ConnectionError(
         CONNECTION_MESSAGE
@@ -77,3 +83,8 @@ async def test_connection_error_scrubbed(
     assert len(chain) >= 2
     _assert_no_secrets(" ".join(chain))
     _assert_no_secrets(caplog.text)
+
+    diagnostics = await get_diagnostics_for_config_entry(
+        hass, hass_client, init_integration
+    )
+    _assert_no_secrets(json.dumps(diagnostics))
