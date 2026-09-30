@@ -63,7 +63,7 @@ DEVICE_CALL_NAMES = [
     "get_speed_in_bytes",
     "get_status",
     "is_update_available",
-    "action",
+    "get_core_revision",
 ]
 
 
@@ -125,9 +125,9 @@ async def test_device_call_fault(
         target = mock_device.toolbar.get_status
     elif call_name == "is_update_available":
         target = mock_device.update.is_update_available
-    else:  # action
-        target = mock_device.action
-        # Force the action to be called by making update_available True.
+    else:  # get_core_revision
+        target = mock_device.jd.get_core_revision
+        # Force a new query by making update_available True.
         mock_device.update.is_update_available.return_value = True
 
     target.side_effect = exception
@@ -142,10 +142,7 @@ async def test_device_call_fault(
 
     # Restore and recover.
     target.side_effect = None
-    if call_name == "action":
-        mock_device.action.side_effect = lambda path, *a, **k: (
-            48000 if path == "/jd/getCoreRevision" else None
-        )
+    if call_name == "get_core_revision":
         mock_device.update.is_update_available.return_value = False
 
     await _refresh(hass, entry)

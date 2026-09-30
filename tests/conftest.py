@@ -130,11 +130,7 @@ def _mock_device(device_info: dict[str, str]) -> MagicMock:
     device.downloads.query_links.return_value = [{"name": "link1"}, {"name": "link2"}]
     device.toolbar.get_status.return_value = {"limit": False}
     device.update.is_update_available.return_value = False
-    # The core revision is queried through the raw endpoint (Jddevice.jd is
-    # missing in myjdapi 1.1.9 and 1.1.10).
-    device.action.side_effect = lambda path, *args, **kwargs: (
-        48000 if path == "/jd/getCoreRevision" else None
-    )
+    device.jd.get_core_revision.return_value = 48000
     return device
 
 

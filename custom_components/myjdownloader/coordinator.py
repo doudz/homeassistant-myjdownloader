@@ -265,9 +265,8 @@ class MyJDownloaderCoordinator(DataUpdateCoordinator[MyJDownloaderData]):
                 or previous is None
                 or previous.update_available != update_available
             ):
-                # Jddevice.jd is missing in myjdapi >= 1.1.9, call the endpoint directly.
                 core_revision = await call(
-                    device_id, lambda d: d.action("/jd/getCoreRevision")
+                    device_id, lambda d: d.jd.get_core_revision()
                 )
             packages = links = None
             if (device_id, "packages") in wanted:

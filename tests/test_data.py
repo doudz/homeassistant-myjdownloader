@@ -181,11 +181,9 @@ async def test_core_revision_values(
     value: int | str | None,
     expected_installed: str | None,
 ) -> None:
-    """Test various core revision return values from the action endpoint."""
+    """Test various core revision return values."""
     mock_device = mock_devices["af9d03a21ddb917492dc1af8a6427f11"]
-    mock_device.action.side_effect = lambda path, *a, **k: (
-        value if path == "/jd/getCoreRevision" else None
-    )
+    mock_device.jd.get_core_revision.return_value = value
 
     mock_config_entry.add_to_hass(hass)
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
