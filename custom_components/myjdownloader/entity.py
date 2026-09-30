@@ -1,0 +1,131 @@
+"""Base entities for the MyJDownloader integration."""
+
+from collections.abc import Callable, Iterable
+from typing import Any
+
+from myjdapi.myjdapi import Jddevice
+
+from homeassistant.core import callback
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.entity import Entity, EntityDescription
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+from .const import DOMAIN
+from .coordinator import DeviceState, MyJDownloaderCoordinator
+
+
+def account_identifier(coordinator: MyJDownloaderCoordinator) -> tuple[str, str]:
+    """Return the device identifier of the MyJDownloader account."""
+    return (DOMAIN, f"account_{coordinator.config_entry.entry_id}")
+
+
+def async_add_device_entities(
+    coordinator: MyJDownloaderCoordinator,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+    factory: Callable[[str], Iterable[Entity]],
+) -> None:
+    """Add entities for every JDownloader, including ones appearing later."""
+    # JDownloader id -> removal count the entities were created for. A device
+    # removed by the user gets new entities when it comes back.
+    known: dict[str, int] = {}
+
+    @callback
+    def _async_add_new() -> None:
+        removals = coordinator.device_removals
+        new = [
+            device_id
+            for device_id in coordinator.data.devices
+            if known.get(device_id) != removals.get(device_id, 0)
+        ]
+        if not new:
+            return
+        for device_id in new:
+            known[device_id] = removals.get(device_id, 0)
+        async_add_entities(
+            [entity for device_id in new for entity in factory(device_id)]
+        )
+
+    _async_add_new()
+    coordinator.config_entry.async_on_unload(
+        coordinator.async_add_listener(_async_add_new)
+    )
+
+
+class MyJDownloaderEntity(CoordinatorEntity[MyJDownloaderCoordinator]):
+    """Base entity of the MyJDownloader integration."""
+
+    _attr_has_entity_name = True
+
+
+class MyJDownloaderAccountEntity(MyJDownloaderEntity):
+    """Entity of the MyJDownloader account itself."""
+
+    def __init__(
+        self,
+        coordinator: MyJDownloaderCoordinator,
+        description: EntityDescription,
+    ) -> None:
+        """Initialize the entity."""
+        super().__init__(coordinator)
+        self.entity_description = description
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_{description.key}"
+        # Created with all details in async_setup_entry.
+        self._attr_device_info = DeviceInfo(
+            identifiers={account_identifier(coordinator)}
+        )
+
+
+class MyJDownloaderDeviceEntity(MyJDownloaderEntity):
+    """Entity of one JDownloader."""
+
+    def __init__(
+        self,
+        coordinator: MyJDownloaderCoordinator,
+        device_id: str,
+        description: EntityDescription,
+        *,
+        fetch_on_demand: bool = False,
+    ) -> None:
+        """Initialize the entity.
+
+        With fetch_on_demand the coordinator only queries the data for this
+        entity's key while the entity is enabled.
+        """
+        super().__init__(
+            coordinator, (device_id, description.key) if fetch_on_demand else None
+        )
+        self.entity_description = description
+        self._device_id = device_id
+        self._attr_unique_id = f"{device_id}_{description.key}"
+        state = coordinator.data.devices[device_id]
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, device_id)},
+            name=f"JDownloader {state.name}",
+            manufacturer="AppWork GmbH",
+            model=state.device_type,
+            sw_version=str(state.core_revision) if state.core_revision else None,
+            entry_type=DeviceEntryType.SERVICE,
+            configuration_url=f"https://my.jdownloader.org/?deviceId={device_id}#webinterface:downloads",
+            via_device_id=coordinator.config_entry.runtime_data.account_device_id,
+        )
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Skip updates for a JDownloader that is no longer tracked."""
+        if self._device_id in self.coordinator.data.devices:
+            super()._handle_coordinator_update()
+
+    @property
+    def device_state(self) -> DeviceState:
+        """Return the current state of this entity's JDownloader."""
+        return self.coordinator.data.devices[self._device_id]
+
+    @property
+    def available(self) -> bool:
+        """Return if the JDownloader is reachable."""
+        return super().available and self.device_state.available
+
+    async def async_device_action(self, func: Callable[[Jddevice], Any]) -> None:
+        """Run an action on the JDownloader and refresh the state afterwards."""
+        await self.coordinator.async_device_action(self._device_id, func)

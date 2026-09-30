@@ -1,104 +1,250 @@
 {
-    "config": {
-        "abort": {
-            "already_configured": "Device is already configured"
+  "config": {
+    "step": {
+      "user": {
+        "description": "Log in with your MyJDownloader account. Your JDownloaders connected to this account are added as devices.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
         },
-        "error": {
-            "cannot_connect": "Failed to connect",
-            "invalid_auth": "Invalid authentication",
-            "unknown": "Unexpected error"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "email": "Email",
-                    "password": "Password"
-                }
-            }
+        "data_description": {
+          "email": "The email address of your MyJDownloader account.",
+          "password": "The password of your MyJDownloader account."
         }
+      },
+      "reauth_confirm": {
+        "title": "Authentication expired for {name}",
+        "description": "The password of the MyJDownloader account {email} is no longer valid. Enter the current password.",
+        "data": {
+          "password": "Password"
+        },
+        "data_description": {
+          "password": "The password of your MyJDownloader account."
+        }
+      },
+      "reconfigure": {
+        "description": "Update the credentials of your MyJDownloader account.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        },
+        "data_description": {
+          "email": "The email address of your MyJDownloader account.",
+          "password": "The password of your MyJDownloader account."
+        }
+      }
     },
-    "entity_component": {
-        "_": {
-            "name": "MyJDownloader",
-            "state": {
-                "idle": "Idle",
-                "paused": "Paused",
-                "running": "Running",
-                "stopped": "Stopped"
-            }
-        }
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
     },
-    "selector": {
-        "priority": {
-            "options": {
-                "default": "Default",
-                "high": "High",
-                "higher": "Higher",
-                "highest": "Highest",
-                "low": "Low",
-                "lower": "Lower",
-                "lowest": "Lowest"
-            }
-        }
-    },
-    "services": {
-        "add_links": {
-            "description": "Add links to LinkGrabber.",
-            "fields": {
-                "auto_extract": {
-                    "description": "Extract downloaded archives automatically?",
-                    "name": "Auto extract archives"
-                },
-                "autostart": {
-                    "description": "Start downloads automatically after adding?",
-                    "name": "Autostart"
-                },
-                "destination_folder": {
-                    "description": "The destination folder.",
-                    "name": "Destination folder"
-                },
-                "download_password": {
-                    "description": "The password for the link.",
-                    "name": "Download password"
-                },
-                "extract_password": {
-                    "description": "The password for archive extraction.",
-                    "name": "Extract password"
-                },
-                "links": {
-                    "description": "The link(s) to add.",
-                    "name": "Links"
-                },
-                "overwrite_packagizer_rules": {
-                    "description": "Overwrite packagizer rules?",
-                    "name": "Overwrite packagizer rules"
-                },
-                "package_name": {
-                    "description": "The name of the package.",
-                    "name": "Package name"
-                },
-                "priority": {
-                    "description": "The priority of the link(s).",
-                    "name": "Priority"
-                }
-            },
-            "name": "Add links"
-        },
-        "restart_and_update": {
-            "description": "Restarts and updates JDownloader.",
-            "name": "Restart and update"
-        },
-        "run_update_check": {
-            "description": "Checks for updates.",
-            "name": "Run update check"
-        },
-        "start_downloads": {
-            "description": "Starts downloading.",
-            "name": "Start"
-        },
-        "stop_downloads": {
-            "description": "Stops downloading.",
-            "name": "Stop"
-        }
+    "abort": {
+      "already_configured": "Account is already configured",
+      "reauth_successful": "Re-authentication was successful",
+      "reconfigure_successful": "Re-configuration was successful",
+      "wrong_account": "The credentials belong to a different MyJDownloader account. Add it as a new entry instead."
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "connected": {
+        "name": "Connected"
+      }
+    },
+    "button": {
+      "start_downloads": {
+        "name": "Start downloads"
+      },
+      "stop_downloads": {
+        "name": "Stop downloads"
+      },
+      "run_update_check": {
+        "name": "Run update check"
+      }
+    },
+    "sensor": {
+      "status": {
+        "name": "Status",
+        "state": {
+          "idle": "Idle",
+          "running": "Running",
+          "paused": "Paused",
+          "stopping": "Stopping",
+          "stopped": "Stopped"
+        }
+      },
+      "download_speed": {
+        "name": "Download speed"
+      },
+      "packages": {
+        "name": "Packages"
+      },
+      "links": {
+        "name": "Links"
+      },
+      "online_count": {
+        "name": "JDownloaders online"
+      }
+    },
+    "switch": {
+      "pause": {
+        "name": "Pause"
+      },
+      "limit": {
+        "name": "Limit"
+      }
+    },
+    "update": {
+      "update": {
+        "name": "Update"
+      }
+    }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "Authentication with MyJDownloader failed, please log in again."
+    },
+    "cannot_connect": {
+      "message": "Failed to connect to MyJDownloader: {error}"
+    },
+    "latest_version_failed": {
+      "message": "Failed to fetch the latest JDownloader version: {error}"
+    },
+    "action_failed": {
+      "message": "The action on JDownloader {device} failed."
+    },
+    "device_not_found": {
+      "message": "Device {device_id} is not a JDownloader of the MyJDownloader integration."
+    },
+    "entity_not_found": {
+      "message": "Entity {entity_id} does not belong to a JDownloader of the MyJDownloader integration."
+    },
+    "entry_not_loaded": {
+      "message": "The MyJDownloader account of {device} is not loaded."
+    },
+    "device_offline": {
+      "message": "JDownloader {device} is not connected to MyJDownloader."
+    },
+    "duplicate_account": {
+      "message": "Another entry already uses this MyJDownloader account. Delete this entry."
+    },
+    "rate_limited": {
+      "message": "MyJDownloader asks to slow down, the next update follows in {minutes} minutes."
+    },
+    "rate_limited_action": {
+      "message": "MyJDownloader asks to slow down, try again in a few minutes."
+    }
+  },
+  "issues": {
+    "deprecated_service": {
+      "title": "Action {service} is deprecated",
+      "description": "The action `{service}` will be removed in version 3.2 of the MyJDownloader integration. Use {replacement} instead, and update your automations and scripts."
+    },
+    "deprecated_entity_target": {
+      "title": "Targeting entities in {service} is deprecated",
+      "description": "The action `{service}` was called with an entity as target. Select the JDownloader with the `device_id` field instead; entity targets will stop working in version 3.2."
+    }
+  },
+  "selector": {
+    "priority": {
+      "options": {
+        "default": "Default",
+        "high": "High",
+        "higher": "Higher",
+        "highest": "Highest",
+        "low": "Low",
+        "lower": "Lower",
+        "lowest": "Lowest"
+      }
+    }
+  },
+  "services": {
+    "add_links": {
+      "description": "Add links to LinkGrabber.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "The JDownloader to run the action on."
+        },
+        "auto_extract": {
+          "description": "Extract downloaded archives automatically?",
+          "name": "Auto extract archives"
+        },
+        "autostart": {
+          "description": "Start downloads automatically after adding?",
+          "name": "Autostart"
+        },
+        "destination_folder": {
+          "description": "The destination folder.",
+          "name": "Destination folder"
+        },
+        "download_password": {
+          "description": "The password for the link.",
+          "name": "Download password"
+        },
+        "extract_password": {
+          "description": "The password for archive extraction.",
+          "name": "Extract password"
+        },
+        "links": {
+          "description": "The links to add: http(s), magnet, ftp, container links or text containing links.",
+          "name": "Links"
+        },
+        "overwrite_packagizer_rules": {
+          "description": "Overwrite packagizer rules?",
+          "name": "Overwrite packagizer rules"
+        },
+        "package_name": {
+          "description": "The name of the package.",
+          "name": "Package name"
+        },
+        "priority": {
+          "description": "The priority of the link(s).",
+          "name": "Priority"
+        }
+      },
+      "name": "Add links"
+    },
+    "restart_and_update": {
+      "name": "Restart and update (deprecated)",
+      "description": "Restarts and updates JDownloader. Deprecated, will be removed in 3.2. Use the install action of the update entity instead.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "The JDownloader to run the action on."
+        }
+      }
+    },
+    "run_update_check": {
+      "name": "Run update check (deprecated)",
+      "description": "Checks for updates. Deprecated, will be removed in 3.2. Use the Run update check button instead.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "The JDownloader to run the action on."
+        }
+      }
+    },
+    "start_downloads": {
+      "name": "Start downloads (deprecated)",
+      "description": "Starts downloading. Deprecated, will be removed in 3.2. Use the Start downloads button instead.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "The JDownloader to run the action on."
+        }
+      }
+    },
+    "stop_downloads": {
+      "name": "Stop downloads (deprecated)",
+      "description": "Stops downloading. Deprecated, will be removed in 3.2. Use the Stop downloads button instead.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "The JDownloader to run the action on."
+        }
+      }
+    }
+  }
 }

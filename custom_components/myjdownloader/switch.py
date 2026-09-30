@@ -1,187 +1,81 @@
-"""MyJDownloader switches."""
+"""Switches of the MyJDownloader integration."""
 
-from __future__ import annotations
-
-import datetime
-import logging
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
-from myjdapi.myjdapi import MYJDException
+from myjdapi.myjdapi import Jddevice
 
-from homeassistant.components.switch import DOMAIN, SwitchEntity
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from . import MyJDownloaderHub
-from .const import (
-    DATA_MYJDOWNLOADER_CLIENT,
-    DOMAIN as MYJDOWNLOADER_DOMAIN,
-    SCAN_INTERVAL_SECONDS,
+from .coordinator import DeviceState, MyJDownloaderConfigEntry
+from .entity import MyJDownloaderDeviceEntity, async_add_device_entities
+
+PARALLEL_UPDATES = 1
+
+
+@dataclass(frozen=True, kw_only=True)
+class MyJDownloaderSwitchEntityDescription(SwitchEntityDescription):
+    """Describes a JDownloader switch."""
+
+    is_on_fn: Callable[[DeviceState], bool | None]
+    turn_on_fn: Callable[[Jddevice], Any]
+    turn_off_fn: Callable[[Jddevice], Any]
+
+
+SWITCHES: tuple[MyJDownloaderSwitchEntityDescription, ...] = (
+    MyJDownloaderSwitchEntityDescription(
+        key="pause",
+        translation_key="pause",
+        is_on_fn=lambda state: (
+            state.raw_status.upper() == "PAUSE" if state.raw_status else None
+        ),
+        turn_on_fn=lambda device: device.downloadcontroller.pause_downloads(True),
+        turn_off_fn=lambda device: device.downloadcontroller.pause_downloads(False),
+    ),
+    MyJDownloaderSwitchEntityDescription(
+        key="limit",
+        translation_key="limit",
+        is_on_fn=lambda state: state.limit,
+        turn_on_fn=lambda device: device.toolbar.enable_downloadSpeedLimit(),
+        turn_off_fn=lambda device: device.toolbar.disable_downloadSpeedLimit(),
+    ),
 )
-from .entities import MyJDownloaderDeviceEntity
-
-_LOGGER = logging.getLogger(__name__)
-
-SCAN_INTERVAL = datetime.timedelta(seconds=SCAN_INTERVAL_SECONDS)
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-    discovery_info=None,
+    entry: MyJDownloaderConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up the switch using config entry."""
-    hub = hass.data[MYJDOWNLOADER_DOMAIN][entry.entry_id][DATA_MYJDOWNLOADER_CLIENT]
-
-    @callback
-    def async_add_switch(devices=hub.devices):
-        entities = []
-
-        for device_id in devices:
-            if DOMAIN not in hub.devices_platforms[device_id]:
-                hub.devices_platforms[device_id].add(DOMAIN)
-                entities += [
-                    MyJDownloaderPauseSwitch(hub, device_id),
-                    MyJDownloaderLimitSwitch(hub, device_id),
-                ]
-
-        if entities:
-            async_add_entities(entities, True)
-
-    entry.async_on_unload(
-        async_dispatcher_connect(
-            hass, f"{MYJDOWNLOADER_DOMAIN}_new_devices", async_add_switch
-        )
+    """Set up the MyJDownloader switches."""
+    coordinator = entry.runtime_data.coordinator
+    async_add_device_entities(
+        coordinator,
+        async_add_entities,
+        lambda device_id: (
+            MyJDownloaderSwitch(coordinator, device_id, description)
+            for description in SWITCHES
+        ),
     )
-
-    async_add_switch(hub.devices)
 
 
 class MyJDownloaderSwitch(MyJDownloaderDeviceEntity, SwitchEntity):
-    """Defines a MyJDownloader switch."""
+    """Switch of a JDownloader."""
 
-    def __init__(
-        self,
-        hub: MyJDownloaderHub,
-        device_id: str,
-        name: str,
-        icon: str,
-        key: str,
-        entity_category: EntityCategory | None = None,
-        enabled_default: bool = True,
-    ) -> None:
-        """Initialize MyJDownloader switch."""
-        self._state = False
-        self._key = key
-        super().__init__(hub, device_id, name, icon, entity_category, enabled_default)
+    entity_description: MyJDownloaderSwitchEntityDescription
 
     @property
-    def unique_id(self) -> str:
-        """Return the unique ID for this switch."""
-        return "_".join([MYJDOWNLOADER_DOMAIN, self._name, DOMAIN, self._key])
-
-    @property
-    def is_on(self) -> bool:
+    def is_on(self) -> bool | None:
         """Return the state of the switch."""
-        return self._state
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn off the switch."""
-        try:
-            await self._myjdownloader_turn_off()
-        except MYJDException:
-            _LOGGER.error("An error occurred while turning off MyJDownloader switch")
-            self._available = False
-
-    async def _myjdownloader_turn_off(self) -> None:
-        """Turn off the switch."""
-        raise NotImplementedError
+        return self.entity_description.is_on_fn(self.device_state)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn on the switch."""
-        try:
-            await self._myjdownloader_turn_on()
-        except MYJDException:
-            _LOGGER.error("An error occurred while turning on MyJDownloader switch")
-            self._available = False
+        """Turn the switch on."""
+        await self.async_device_action(self.entity_description.turn_on_fn)
 
-    async def _myjdownloader_turn_on(self) -> None:
-        """Turn on the switch."""
-        raise NotImplementedError
-
-
-class MyJDownloaderPauseSwitch(MyJDownloaderSwitch):
-    """Defines a MyJDownloader pause switch."""
-
-    def __init__(
-        self,
-        hub: MyJDownloaderHub,
-        device_id: str,
-    ) -> None:
-        """Initialize MyJDownloader switch."""
-        super().__init__(
-            hub,
-            device_id,
-            "JDownloader $device_name Pause",
-            "mdi:play-pause",
-            "pause",
-        )
-
-    async def _myjdownloader_turn_off(self) -> None:
-        """Turn off the switch."""
-        # TODO additionally trigger update of status sensor immediately
-        # http://dev-docs.home-assistant.io/en/master/api/helpers.html#module-homeassistant.helpers.dispatcher
-        device = self.hub.get_device(self._device_id)
-        await self.hub.async_query(device.downloadcontroller.pause_downloads, False)
-
-    async def _myjdownloader_turn_on(self) -> None:
-        """Turn on the switch."""
-        # TODO additionally trigger update of status sensor immediately
-        # http://dev-docs.home-assistant.io/en/master/api/helpers.html#module-homeassistant.helpers.dispatcher
-        device = self.hub.get_device(self._device_id)
-        await self.hub.async_query(device.downloadcontroller.pause_downloads, True)
-
-    async def _myjdownloader_update(self) -> None:
-        """Update MyJDownloader entity."""
-        device = self.hub.get_device(self._device_id)
-        status = await self.hub.async_query(device.downloadcontroller.get_current_state)
-        self._state = status.lower() == "pause"
-
-
-class MyJDownloaderLimitSwitch(MyJDownloaderSwitch):
-    """Defines a MyJDownloader limit switch."""
-
-    def __init__(
-        self,
-        hub: MyJDownloaderHub,
-        device_id: str,
-    ) -> None:
-        """Initialize MyJDownloader switch."""
-        super().__init__(
-            hub,
-            device_id,
-            "JDownloader $device_name Limit",
-            "mdi:download-lock",
-            "limit",
-        )
-
-    async def _myjdownloader_turn_off(self) -> None:
-        """Turn off the switch."""
-        device = self.hub.get_device(self._device_id)
-        await self.hub.async_query(device.toolbar.disable_downloadSpeedLimit)
-
-    async def _myjdownloader_turn_on(self) -> None:
-        """Turn on the switch."""
-        device = self.hub.get_device(self._device_id)
-        await self.hub.async_query(device.toolbar.enable_downloadSpeedLimit)
-
-    async def _myjdownloader_update(self) -> None:
-        """Update MyJDownloader entity."""
-        device = self.hub.get_device(self._device_id)
-        self._state = await self.hub.async_query(
-            device.toolbar.status_downloadSpeedLimit
-        )
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn the switch off."""
+        await self.async_device_action(self.entity_description.turn_off_fn)

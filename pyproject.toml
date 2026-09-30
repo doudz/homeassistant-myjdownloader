@@ -1,0 +1,192 @@
+[project]
+name = "homeassistant-myjdownloader"
+version = "3.0.0.dev7"
+description = "MyJDownloader custom integration for Home Assistant"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.14"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+norecursedirs = [".git", ".venv*"]
+filterwarnings = ["error::pytest.PytestUnraisableExceptionWarning"]
+markers = [
+  "expected_errors(*substrings): log messages at ERROR level this test provokes on purpose",
+]
+
+[tool.coverage.run]
+source = ["custom_components.myjdownloader"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+warn_unreachable = true
+show_error_codes = true
+files = ["custom_components/myjdownloader"]
+
+[[tool.mypy.overrides]]
+# myjdapi ships no type information yet.
+module = ["myjdapi", "myjdapi.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+required-version = ">=0.16.3"
+target-version = "py314"
+extend-exclude = [".venv*"]
+
+[tool.ruff.lint]
+# Rule selection mirrors Home Assistant core (pyproject.toml, 2026.9) so the code
+# stays ready for a core submission.
+select = [
+  "A001",
+  "ASYNC",
+  "B",
+  "BLE",
+  "C",
+  "COM818",
+  "D",
+  "DTZ003",
+  "DTZ004",
+  "DTZ011",
+  "E",
+  "F",
+  "F541",
+  "FLY",
+  "FURB",
+  "G",
+  "I",
+  "INP",
+  "ISC",
+  "ICN001",
+  "LOG",
+  "N804",
+  "N805",
+  "N806",
+  "N815",
+  "PERF",
+  "PGH",
+  "PIE",
+  "PL",
+  "PT",
+  "PTH",
+  "PYI",
+  "RET",
+  "RSE",
+  "RUF",
+  "S102",
+  "S103",
+  "S107",
+  "S108",
+  "S301",
+  "S306",
+  "S307",
+  "S608",
+  "SIM",
+  "SLF",
+  "SLOT",
+  "T100",
+  "T20",
+  "TC",
+  "TID",
+  "TRY",
+  "UP",
+  "UP031",
+  "UP032",
+  "W",
+]
+ignore = [
+  "ASYNC109",
+  "ASYNC110",
+  "ASYNC240",
+  "B008",
+  "B019",
+  "D202",
+  "D203",
+  "D213",
+  "D406",
+  "D407",
+  "D417",
+  "E501",
+  "PLC1901",
+  "PLR0911",
+  "PLR0912",
+  "PLR0913",
+  "PLR0915",
+  "PLR0917",
+  "PLR2004",
+  "PLW0108",
+  "PLW1641",
+  "PLW2901",
+  "PT011",
+  "PT018",
+  "RUF001",
+  "RUF012",
+  "RUF015",
+  "RUF043",
+  "SIM102",
+  "SIM103",
+  "SIM108",
+  "SIM115",
+  "TC001",
+  "TC002",
+  "TC003",
+  "TC006",
+  "TRY003",
+  "TRY400",
+  "UP047",
+  "UP049",
+  # Conflicts with the formatter
+  "W191",
+  "E111",
+  "E114",
+  "E117",
+  "D206",
+  "D300",
+  "Q",
+  "COM812",
+  "COM819",
+  "FURB116",
+  "ISC004",
+  "LOG004",
+]
+
+[tool.ruff.lint.flake8-import-conventions.extend-aliases]
+voluptuous = "vol"
+"homeassistant.helpers.config_validation" = "cv"
+"homeassistant.helpers.device_registry" = "dr"
+"homeassistant.helpers.entity_registry" = "er"
+"homeassistant.helpers.issue_registry" = "ir"
+"homeassistant.util.dt" = "dt_util"
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"async_timeout".msg = "use asyncio.timeout instead"
+"pytz".msg = "use zoneinfo instead"
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+known-first-party = ["homeassistant", "custom_components"]
+combine-as-imports = true
+split-on-trailing-comma = false
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PTH"]
+# Developer script for the live test stack, not part of the integration.
+"live/**" = ["ASYNC221", "D102", "D103", "D107", "INP001", "T201"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 25
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

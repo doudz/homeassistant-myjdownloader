@@ -1,0 +1,70 @@
+# serializer version: 1
+# name: test_device_diagnostics
+  dict({
+    'device': dict({
+      'available': True,
+      'core_revision': 48000,
+      'device_id': 'af9d03a21ddb917492dc1af8a6427f11',
+      'device_type': 'jd',
+      'limit': False,
+      'links_count': None,
+      'name': 'MyPC',
+      'online': True,
+      'packages_count': None,
+      'raw_status': 'RUNNING',
+      'speed': 2500000,
+      'status': 'running',
+      'update_available': False,
+    }),
+    'last_update_success': True,
+  })
+# ---
+# name: test_entry_diagnostics
+  dict({
+    'coordinator': dict({
+      'last_exception': None,
+      'last_update_success': True,
+      'update_interval': 60.0,
+    }),
+    'devices': list([
+      dict({
+        'available': True,
+        'core_revision': 48000,
+        'device_id': 'af9d03a21ddb917492dc1af8a6427f11',
+        'device_type': 'jd',
+        'limit': False,
+        'links_count': None,
+        'name': 'MyPC',
+        'online': True,
+        'packages_count': None,
+        'raw_status': 'RUNNING',
+        'speed': 2500000,
+        'status': 'running',
+        'update_available': False,
+      }),
+    ]),
+    'entry': dict({
+      'data': dict({
+        'email': '**REDACTED**',
+        'password': '**REDACTED**',
+      }),
+      'disabled_by': None,
+      'discovery_keys': dict({
+      }),
+      'domain': 'myjdownloader',
+      'minor_version': 1,
+      'options': dict({
+      }),
+      'pref_disable_new_entities': False,
+      'pref_disable_polling': False,
+      'source': 'user',
+      'subentries': list([
+      ]),
+      'title': '**REDACTED**',
+      'unique_id': '**REDACTED**',
+      'version': 2,
+    }),
+    'latest_version': '50639',
+    'myjdapi_version': '1.1.11',
+  })
+# ---

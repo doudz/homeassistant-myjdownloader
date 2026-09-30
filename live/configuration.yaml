@@ -1,0 +1,8 @@
+# Minimal Home Assistant configuration for live testing.
+default_config:
+
+logger:
+  default: warning
+  logs:
+    custom_components.myjdownloader: debug
+    myjdapi: debug

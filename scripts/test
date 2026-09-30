@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Run lint, type checks and tests inside the Linux test image.
+#
+#   scripts/test                 # everything against the latest pinned HA
+#   scripts/test --min           # tests against the minimum supported HA
+#   scripts/test pytest -k flow  # any command inside the container
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+variant="latest"
+build_args=()
+if [[ "${1:-}" == "--min" ]]; then
+  shift
+  variant="min"
+  build_args=(--build-arg PHCC_VERSION=0.13.357)
+fi
+
+# Rebuild only when the image inputs change, so runs work without registry access.
+hash=$(cat Dockerfile.test requirements_test.txt <(echo "$variant") | sha256sum | cut -c1-12)
+image="myjdownloader-test:$variant-$hash"
+if ! docker image inspect "$image" >/dev/null 2>&1; then
+  docker build --quiet -f Dockerfile.test -t "$image" "${build_args[@]}" . >/dev/null
+fi
+
+if [[ $# -eq 0 ]]; then
+  set -- sh -c "ruff check . && ruff format --check . && pytest --cov --cov-report=term-missing"
+fi
+
+# MSYS_NO_PATHCONV keeps Git Bash on Windows from rewriting /work.
+MSYS_NO_PATHCONV=1 docker run --rm -t -v "$(pwd):/work" -w /work \
+  -e PYTHONDONTWRITEBYTECODE=1 "$image" "$@"

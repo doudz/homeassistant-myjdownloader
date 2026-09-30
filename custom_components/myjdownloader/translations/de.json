@@ -1,0 +1,250 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "description": "Melde dich mit deinem MyJDownloader-Konto an. Die JDownloader, die mit diesem Konto verbunden sind, werden als Geräte hinzugefügt.",
+        "data": {
+          "email": "E-Mail",
+          "password": "Passwort"
+        },
+        "data_description": {
+          "email": "Die E-Mail-Adresse deines MyJDownloader-Kontos.",
+          "password": "Das Passwort deines MyJDownloader-Kontos."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Authentifizierung für {name} abgelaufen",
+        "description": "Das Passwort des MyJDownloader-Kontos {email} ist nicht mehr gültig. Gib das aktuelle Passwort ein.",
+        "data": {
+          "password": "Passwort"
+        },
+        "data_description": {
+          "password": "Das Passwort deines MyJDownloader-Kontos."
+        }
+      },
+      "reconfigure": {
+        "description": "Aktualisiere die Anmeldedaten deines MyJDownloader-Kontos.",
+        "data": {
+          "email": "E-Mail",
+          "password": "Passwort"
+        },
+        "data_description": {
+          "email": "Die E-Mail-Adresse deines MyJDownloader-Kontos.",
+          "password": "Das Passwort deines MyJDownloader-Kontos."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "invalid_auth": "Ungültige Authentifizierung",
+      "unknown": "Unerwarteter Fehler"
+    },
+    "abort": {
+      "already_configured": "Das Konto ist bereits konfiguriert",
+      "reauth_successful": "Die erneute Authentifizierung war erfolgreich",
+      "reconfigure_successful": "Die Neukonfiguration war erfolgreich",
+      "wrong_account": "Die Anmeldedaten gehören zu einem anderen MyJDownloader-Konto. Füge es stattdessen als neuen Eintrag hinzu."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "connected": {
+        "name": "Verbunden"
+      }
+    },
+    "button": {
+      "start_downloads": {
+        "name": "Downloads starten"
+      },
+      "stop_downloads": {
+        "name": "Downloads stoppen"
+      },
+      "run_update_check": {
+        "name": "Update-Prüfung ausführen"
+      }
+    },
+    "sensor": {
+      "status": {
+        "name": "Status",
+        "state": {
+          "idle": "Leerlauf",
+          "running": "Läuft",
+          "paused": "Pausiert",
+          "stopping": "Wird gestoppt",
+          "stopped": "Gestoppt"
+        }
+      },
+      "download_speed": {
+        "name": "Download-Geschwindigkeit"
+      },
+      "packages": {
+        "name": "Pakete"
+      },
+      "links": {
+        "name": "Links"
+      },
+      "online_count": {
+        "name": "JDownloader online"
+      }
+    },
+    "switch": {
+      "pause": {
+        "name": "Pause"
+      },
+      "limit": {
+        "name": "Limit"
+      }
+    },
+    "update": {
+      "update": {
+        "name": "Update"
+      }
+    }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "Die Authentifizierung bei MyJDownloader ist fehlgeschlagen, melde dich erneut an."
+    },
+    "cannot_connect": {
+      "message": "Verbindung zu MyJDownloader fehlgeschlagen: {error}"
+    },
+    "latest_version_failed": {
+      "message": "Die neueste JDownloader-Version konnte nicht abgerufen werden: {error}"
+    },
+    "action_failed": {
+      "message": "Die Aktion auf dem JDownloader {device} ist fehlgeschlagen."
+    },
+    "device_not_found": {
+      "message": "Das Gerät {device_id} ist kein JDownloader der MyJDownloader-Integration."
+    },
+    "entity_not_found": {
+      "message": "Die Entität {entity_id} gehört zu keinem JDownloader der MyJDownloader-Integration."
+    },
+    "entry_not_loaded": {
+      "message": "Das MyJDownloader-Konto von {device} ist nicht geladen."
+    },
+    "device_offline": {
+      "message": "Der JDownloader {device} ist nicht mit MyJDownloader verbunden."
+    },
+    "duplicate_account": {
+      "message": "Ein anderer Eintrag verwendet bereits dieses MyJDownloader-Konto. Lösche diesen Eintrag."
+    },
+    "rate_limited": {
+      "message": "MyJDownloader bittet um weniger Anfragen, die nächste Aktualisierung folgt in {minutes} Minuten."
+    },
+    "rate_limited_action": {
+      "message": "MyJDownloader bittet um weniger Anfragen, versuche es in ein paar Minuten erneut."
+    }
+  },
+  "issues": {
+    "deprecated_service": {
+      "title": "Die Aktion {service} ist veraltet",
+      "description": "Die Aktion `{service}` wird in Version 3.2 der MyJDownloader-Integration entfernt. Verwende stattdessen {replacement} und aktualisiere deine Automatisierungen und Skripte."
+    },
+    "deprecated_entity_target": {
+      "title": "Entitäten als Ziel in {service} sind veraltet",
+      "description": "Die Aktion `{service}` wurde mit einer Entität als Ziel aufgerufen. Wähle den JDownloader stattdessen über das Feld `device_id` aus; Entitäts-Ziele funktionieren ab Version 3.2 nicht mehr."
+    }
+  },
+  "selector": {
+    "priority": {
+      "options": {
+        "default": "Standard",
+        "high": "Hoch",
+        "higher": "Höher",
+        "highest": "Am höchsten",
+        "low": "Niedrig",
+        "lower": "Niedriger",
+        "lowest": "Am niedrigsten"
+      }
+    }
+  },
+  "services": {
+    "add_links": {
+      "description": "Fügt Links zum LinkGrabber hinzu.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "Der JDownloader, auf dem die Aktion ausgeführt werden soll."
+        },
+        "auto_extract": {
+          "description": "Heruntergeladene Archive automatisch extrahieren?",
+          "name": "Archive automatisch extrahieren"
+        },
+        "autostart": {
+          "description": "Downloads nach dem Hinzufügen automatisch starten?",
+          "name": "Autostart"
+        },
+        "destination_folder": {
+          "description": "Das Zielverzeichnis.",
+          "name": "Zielverzeichnis"
+        },
+        "download_password": {
+          "description": "Das Passwort für den Link.",
+          "name": "Download-Passwort"
+        },
+        "extract_password": {
+          "description": "Das Passwort für die Archivextraktion.",
+          "name": "Extraktionspasswort"
+        },
+        "links": {
+          "description": "Die hinzuzufügenden Links: http(s), Magnet, FTP, Container-Links oder Text mit Links.",
+          "name": "Links"
+        },
+        "overwrite_packagizer_rules": {
+          "description": "Packagizer-Regeln überschreiben?",
+          "name": "Packagizer-Regeln überschreiben"
+        },
+        "package_name": {
+          "description": "Der Name des Pakets.",
+          "name": "Paketname"
+        },
+        "priority": {
+          "description": "Die Priorität des/der Link(s).",
+          "name": "Priorität"
+        }
+      },
+      "name": "Links hinzufügen"
+    },
+    "restart_and_update": {
+      "name": "Neustart und Update (veraltet)",
+      "description": "Startet JDownloader neu und aktualisiert ihn. Veraltet, wird in Version 3.2 entfernt. Verwende stattdessen die Installationsaktion der Update-Entität.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "Der JDownloader, auf dem die Aktion ausgeführt werden soll."
+        }
+      }
+    },
+    "run_update_check": {
+      "name": "Update-Prüfung ausführen (veraltet)",
+      "description": "Prüft auf Updates. Veraltet, wird in Version 3.2 entfernt. Verwende stattdessen die Schaltfläche Update-Prüfung ausführen.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "Der JDownloader, auf dem die Aktion ausgeführt werden soll."
+        }
+      }
+    },
+    "start_downloads": {
+      "name": "Downloads starten (veraltet)",
+      "description": "Startet die Downloads. Veraltet, wird in Version 3.2 entfernt. Verwende stattdessen die Schaltfläche Downloads starten.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "Der JDownloader, auf dem die Aktion ausgeführt werden soll."
+        }
+      }
+    },
+    "stop_downloads": {
+      "name": "Downloads stoppen (veraltet)",
+      "description": "Stoppt die Downloads. Veraltet, wird in Version 3.2 entfernt. Verwende stattdessen die Schaltfläche Downloads stoppen.",
+      "fields": {
+        "device_id": {
+          "name": "JDownloader",
+          "description": "Der JDownloader, auf dem die Aktion ausgeführt werden soll."
+        }
+      }
+    }
+  }
+}
