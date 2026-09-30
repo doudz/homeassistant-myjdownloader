@@ -185,6 +185,122 @@ async def test_migrate_v1(
     )
 
 
+async def test_migrate_v1_renamed_jdownloader(
+    hass: HomeAssistant,
+    mock_myjdapi: MagicMock,
+    mock_latest_version: None,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Test orphans of an earlier JDownloader name don't break the migration.
+
+    v1 unique_ids contain the JDownloader's name, so a rename left orphaned
+    entries that map to the same v2 unique_id. The entries of the current name
+    are kept, even when the orphans are newer.
+    """
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_EMAIL: TEST_EMAIL, CONF_PASSWORD: TEST_PASSWORD},
+        version=1,
+    )
+    entry.add_to_hass(hass)
+    device = device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, DEVICE_ID)},
+        name="JDownloader MyPC",
+    )
+    for name in ("MyPC", "OldPC"):
+        for domain, unique_id, entity_id, _ in LEGACY_ENTITIES:
+            entity_registry.async_get_or_create(
+                domain,
+                DOMAIN,
+                unique_id.replace("MyPC", name),
+                suggested_object_id=entity_id.split(".")[1].replace(
+                    "mypc", name.lower()
+                ),
+                config_entry=entry,
+                device_id=device.id,
+            )
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.LOADED
+    for domain, _, entity_id, key in LEGACY_ENTITIES:
+        assert (
+            entity_registry.async_get_entity_id(domain, DOMAIN, f"{DEVICE_ID}_{key}")
+            == entity_id
+        )
+        assert entity_registry.async_get(entity_id.replace("mypc", "oldpc")) is None
+
+
+async def test_migrate_v1_interrupted(
+    hass: HomeAssistant,
+    mock_myjdapi: MagicMock,
+    mock_latest_version: None,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Test a migration that was interrupted after some entities finishes.
+
+    The interrupted migration gave the new unique_ids to the orphans of an
+    earlier name. The entry of the current name replaces such an orphan; an
+    orphan without an entry of the current name keeps the new unique_id.
+    """
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_EMAIL: TEST_EMAIL, CONF_PASSWORD: TEST_PASSWORD},
+        version=1,
+    )
+    entry.add_to_hass(hass)
+    device = device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, DEVICE_ID)},
+        name="JDownloader MyPC",
+    )
+
+    def add(domain: str, unique_id: str, object_id: str) -> str:
+        return entity_registry.async_get_or_create(
+            domain,
+            DOMAIN,
+            unique_id,
+            suggested_object_id=object_id,
+            config_entry=entry,
+            device_id=device.id,
+        ).entity_id
+
+    # Migrated orphan, and the unmigrated entry of the current name.
+    migrated_update = add("update", f"{DEVICE_ID}_update", "jdownloader_oldpc_update")
+    current_update = add(
+        "update",
+        "myjdownloader_JDownloader MyPC Update_update",
+        "jdownloader_mypc_update",
+    )
+    # Migrated entry, and an unmigrated orphan of an earlier name.
+    migrated_status = add("sensor", f"{DEVICE_ID}_status", "jdownloader_mypc_status")
+    orphan_status = add(
+        "sensor",
+        "myjdownloader_JDownloader OldPC Status_sensor_status",
+        "jdownloader_oldpc_status",
+    )
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.version == 2
+    assert (
+        entity_registry.async_get_entity_id("update", DOMAIN, f"{DEVICE_ID}_update")
+        == current_update
+    )
+    assert entity_registry.async_get(migrated_update) is None
+    assert (
+        entity_registry.async_get_entity_id("sensor", DOMAIN, f"{DEVICE_ID}_status")
+        == migrated_status
+    )
+    assert entity_registry.async_get(orphan_status) is None
+
+
 @pytest.mark.expected_errors("Another entry already uses this MyJDownloader account")
 async def test_migrate_v1_duplicate_account(
     hass: HomeAssistant,

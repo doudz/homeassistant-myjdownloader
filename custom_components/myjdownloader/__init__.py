@@ -1,7 +1,7 @@
 """The MyJDownloader integration."""
 
+from collections import defaultdict
 import logging
-from typing import Any
 
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, Platform
 from homeassistant.core import HomeAssistant, callback
@@ -147,29 +147,7 @@ async def async_migrate_entry(
         return False
 
     if entry.version == 1:
-        device_registry = dr.async_get(hass)
-
-        @callback
-        def _migrate_unique_id(entity: er.RegistryEntry) -> dict[str, Any] | None:
-            if entity.unique_id.endswith(LEGACY_ONLINE_COUNT_SUFFIX):
-                return {"new_unique_id": f"{entry.entry_id}_online_count"}
-            if (
-                entity.device_id is None
-                or (device := device_registry.async_get(entity.device_id)) is None
-            ):
-                return None
-            device_id = next(
-                (value for domain, value in device.identifiers if domain == DOMAIN),
-                None,
-            )
-            if device_id is None:
-                return None
-            for suffix, key in LEGACY_UNIQUE_ID_SUFFIXES.items():
-                if entity.unique_id.endswith(suffix):
-                    return {"new_unique_id": f"{device_id}_{key}"}
-            return None
-
-        await er.async_migrate_entries(hass, entry.entry_id, _migrate_unique_id)
+        _async_migrate_unique_ids(hass, entry)
 
         # Versions up to 2.4 had an "update available" binary sensor, replaced
         # by the update entity; its registry entries would stay orphaned.
@@ -200,3 +178,71 @@ async def async_migrate_entry(
         _LOGGER.debug("Migrated config entry %s to version 2", entry.entry_id)
 
     return True
+
+
+@callback
+def _async_migrate_unique_ids(
+    hass: HomeAssistant, entry: MyJDownloaderConfigEntry
+) -> None:
+    """Migrate the v1 unique_ids to "<jdownloader id>_<key>".
+
+    v1 unique_ids contain the entity name, which contains the JDownloader's
+    name, so every rename left an orphaned registry entry behind. Several v1
+    entries can therefore map to the same new unique_id: the one of the current
+    name is migrated, the orphans are removed.
+    """
+    device_registry = dr.async_get(hass)
+    entity_registry = er.async_get(hass)
+    candidates: defaultdict[tuple[str, str], list[tuple[bool, er.RegistryEntry]]]
+    candidates = defaultdict(list)
+    for entity in er.async_entries_for_config_entry(entity_registry, entry.entry_id):
+        if not entity.unique_id.startswith(f"{DOMAIN}_"):
+            continue
+        if entity.unique_id.endswith(LEGACY_ONLINE_COUNT_SUFFIX):
+            key = (entity.domain, f"{entry.entry_id}_online_count")
+            candidates[key].append((True, entity))
+            continue
+        if (
+            entity.device_id is None
+            or (device := device_registry.async_get(entity.device_id)) is None
+        ):
+            continue
+        device_id = next(
+            (value for domain, value in device.identifiers if domain == DOMAIN), None
+        )
+        if device_id is None:
+            continue
+        for suffix, description_key in LEGACY_UNIQUE_ID_SUFFIXES.items():
+            if entity.unique_id.endswith(suffix):
+                current = entity.unique_id.startswith(f"{DOMAIN}_{device.name} ")
+                key = (entity.domain, f"{device_id}_{description_key}")
+                candidates[key].append((current, entity))
+                break
+
+    for (domain, new_unique_id), entities in candidates.items():
+        # The entry of the current name first, then the newest.
+        entities.sort(key=lambda item: (item[0], item[1].created_at), reverse=True)
+        is_current, first = entities[0]
+        keep: er.RegistryEntry | None = first
+        orphans = [entity for _, entity in entities[1:]]
+        # An interrupted earlier migration may have given the new unique_id to
+        # an orphan already; the entry of the current name replaces it.
+        taken_id = entity_registry.async_get_entity_id(domain, DOMAIN, new_unique_id)
+        if taken_id is not None:
+            taken = entity_registry.async_get(taken_id)
+            if (
+                is_current
+                and taken is not None
+                and taken.config_entry_id == entry.entry_id
+            ):
+                orphans.append(taken)
+            else:
+                orphans.append(first)
+                keep = None
+        for entity in orphans:
+            _LOGGER.debug("Removing orphaned entity %s", entity.entity_id)
+            entity_registry.async_remove(entity.entity_id)
+        if keep is not None:
+            entity_registry.async_update_entity(
+                keep.entity_id, new_unique_id=new_unique_id
+            )
