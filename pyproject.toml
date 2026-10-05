@@ -1,6 +1,6 @@
 [project]
 name = "homeassistant-myjdownloader"
-version = "3.0.0b2"
+version = "3.0.0b3"
 description = "MyJDownloader custom integration for Home Assistant"
 readme = "README.md"
 license = "MIT"
