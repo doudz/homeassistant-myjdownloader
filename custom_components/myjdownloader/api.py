@@ -176,7 +176,13 @@ class MyJDownloaderClient:
         return device
 
     def _with_session[T](self, func: Callable[[], T]) -> Callable[[], T]:
-        """Retry func once after renewing an expired session."""
+        """Retry func once after renewing an expired or rejected session.
+
+        Only a rejected login means that the credentials are wrong.
+        MyJDownloader also answers AUTH_FAILED instead of TOKEN_INVALID to
+        requests of some sessions it dropped, for example after hours or after
+        the computer slept; a new login fixes that.
+        """
 
         def _wrapped() -> T:
             if not self._api.is_connected():
@@ -189,7 +195,14 @@ class MyJDownloaderClient:
                     self._api.reconnect()
                 except MYJDException, requests.RequestException:
                     self._connect()
+            except MYJDAuthFailedException:
+                _LOGGER.debug("Session rejected, logging in again")
+                self._connect()
+            try:
                 return func()
+            except MYJDAuthFailedException as err:
+                # The login worked, so the credentials are fine.
+                raise MyJDownloaderConnectionError("SessionRejected") from err
 
         return _wrapped
 
@@ -200,6 +213,9 @@ class MyJDownloaderClient:
             except (MYJDException, requests.RequestException, ValueError) as err:
                 _scrub(err)
                 raise self._translate(err) from err
+            except MyJDownloaderError as err:
+                _scrub(err)
+                raise
 
     @staticmethod
     def _translate(err: Exception) -> MyJDownloaderError:

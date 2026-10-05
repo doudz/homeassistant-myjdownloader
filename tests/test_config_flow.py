@@ -252,10 +252,11 @@ async def test_action_auth_error_starts_reauth(
     mock_device: MagicMock,
     mock_myjdapi: MagicMock,
 ) -> None:
-    """Test that an auth error during a device action starts a reauth flow."""
+    """Test that a rejected login during a device action starts a reauth flow."""
     mock_device.downloadcontroller.pause_downloads.side_effect = (
         MYJDAuthFailedException("MYJD")
     )
+    mock_myjdapi.connect.side_effect = MYJDAuthFailedException("MYJD")
 
     with pytest.raises(HomeAssistantError) as exc_info:
         await hass.services.async_call(
@@ -277,3 +278,26 @@ async def test_action_auth_error_starts_reauth(
     assert entry_flows[0]["step_id"] == "reauth_confirm"
     assert entry_flows[0]["context"]["source"] == SOURCE_REAUTH
     assert entry_flows[0]["context"]["entry_id"] == init_integration.entry_id
+
+
+async def test_action_rejected_session_logs_in_again(
+    hass: HomeAssistant,
+    init_integration: MagicMock,
+    mock_device: MagicMock,
+    mock_myjdapi: MagicMock,
+) -> None:
+    """Test a device action rejected with AUTH_FAILED is retried after a login."""
+    pause = mock_device.downloadcontroller.pause_downloads
+    pause.side_effect = [MYJDAuthFailedException("MYJD"), None]
+    mock_myjdapi.connect.reset_mock()
+
+    await hass.services.async_call(
+        "switch",
+        "turn_on",
+        {"entity_id": "switch.jdownloader_mypc_pause"},
+        blocking=True,
+    )
+
+    mock_myjdapi.connect.assert_called_once()
+    assert pause.call_count == 2
+    assert not hass.config_entries.flow.async_progress()

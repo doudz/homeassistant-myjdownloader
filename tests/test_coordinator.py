@@ -91,15 +91,53 @@ async def test_account_error_marks_unavailable_and_recovers(
     assert hass.states.get(STATUS).state == "running"
 
 
+def _reauth_flows(hass: HomeAssistant, entry: MockConfigEntry) -> list:
+    return [
+        flow
+        for flow in hass.config_entries.flow.async_progress()
+        if flow["context"].get("entry_id") == entry.entry_id
+    ]
+
+
 @pytest.mark.expected_errors("Authentication failed while fetching")
 async def test_auth_error_during_refresh(
     hass: HomeAssistant, init_integration: MockConfigEntry, mock_myjdapi: MagicMock
 ) -> None:
-    """Test rejected credentials during a refresh fail the update."""
+    """Test a rejected session and a rejected login start a reauth."""
     mock_myjdapi.update_devices.side_effect = MYJDAuthFailedException("MYJD")
+    mock_myjdapi.connect.side_effect = MYJDAuthFailedException("MYJD")
     await _refresh(hass, init_integration)
     assert not init_integration.runtime_data.coordinator.last_update_success
     assert hass.states.get(STATUS).state == STATE_UNAVAILABLE
+    assert len(_reauth_flows(hass, init_integration)) == 1
+
+
+async def test_rejected_session_logs_in_again(
+    hass: HomeAssistant, init_integration: MockConfigEntry, mock_myjdapi: MagicMock
+) -> None:
+    """Test AUTH_FAILED for a session request leads to a new login, not a reauth.
+
+    MyJDownloader answers AUTH_FAILED instead of TOKEN_INVALID for some
+    sessions it dropped, for example after hours or after the computer slept.
+    """
+    mock_myjdapi.update_devices.side_effect = [MYJDAuthFailedException("MYJD"), None]
+    mock_myjdapi.connect.reset_mock()
+    await _refresh(hass, init_integration)
+    mock_myjdapi.connect.assert_called_once()
+    assert init_integration.runtime_data.coordinator.last_update_success
+    assert hass.states.get(STATUS).state == "running"
+    assert not _reauth_flows(hass, init_integration)
+
+
+@pytest.mark.expected_errors("Error fetching myjdownloader data")
+async def test_rejected_after_login_is_no_auth_error(
+    hass: HomeAssistant, init_integration: MockConfigEntry, mock_myjdapi: MagicMock
+) -> None:
+    """Test AUTH_FAILED right after a successful login doesn't start a reauth."""
+    mock_myjdapi.update_devices.side_effect = MYJDAuthFailedException("MYJD")
+    await _refresh(hass, init_integration)
+    assert not init_integration.runtime_data.coordinator.last_update_success
+    assert not _reauth_flows(hass, init_integration)
 
 
 @pytest.mark.parametrize(
