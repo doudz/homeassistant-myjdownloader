@@ -3,7 +3,7 @@
 # brings pytest, pytest-asyncio, pytest-cov, syrupy and freezegun:
 #   0.13.366 -> homeassistant 2026.9.3 (latest, default)
 #   0.13.357 -> homeassistant 2026.8.3 (minimum supported, used in CI)
-pytest-homeassistant-custom-component==0.13.367
+pytest-homeassistant-custom-component==0.13.369
 myjdapi==1.1.11
 mypy==2.3.1
 ruff==0.16.9
