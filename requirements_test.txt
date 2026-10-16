@@ -6,4 +6,4 @@
 pytest-homeassistant-custom-component==0.13.371
 myjdapi==1.1.11
 mypy==2.4.0
-ruff==0.16.10
+ruff==0.17.0
