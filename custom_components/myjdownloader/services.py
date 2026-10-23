@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 from myjdapi.myjdapi import Jddevice
-import voluptuous as vol
+import probatio as vol
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import ATTR_DEVICE_ID, ATTR_ENTITY_ID

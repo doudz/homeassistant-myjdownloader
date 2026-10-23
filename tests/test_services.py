@@ -3,9 +3,9 @@
 from unittest.mock import MagicMock
 
 from myjdapi import MYJDConnectionException
+import probatio as vol
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-import voluptuous as vol
 
 from custom_components.myjdownloader.const import DOMAIN
 from homeassistant.core import HomeAssistant
