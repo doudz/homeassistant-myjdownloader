@@ -1,6 +1,5 @@
 """Tests for the JDownloader device lifecycle."""
 
-import inspect
 from unittest.mock import MagicMock
 
 import pytest
@@ -35,16 +34,10 @@ async def _remove_device(
     hass: HomeAssistant,
     hass_ws_client: WebSocketGenerator,
     device: dr.DeviceEntry,
-    entry: MockConfigEntry,
 ) -> bool:
     assert await async_setup_component(hass, "config", {})
     client = await hass_ws_client(hass)
-    # 2026.9 replaced config/device_registry/remove_config_entry with
-    # config/device_registry/remove; both call async_remove_config_entry_device.
-    if len(inspect.signature(client.remove_device).parameters) == 2:
-        response = await client.remove_device(device.id, entry.entry_id)
-    else:
-        response = await client.remove_device(device.id)
+    response = await client.remove_device(device.id)
     return bool(response["success"])
 
 
@@ -67,7 +60,7 @@ async def test_online_device_cannot_be_removed(
 ) -> None:
     """Test a connected JDownloader is kept."""
     device = _device(device_registry, init_integration, JDOWNLOADER_ID)
-    assert not await _remove_device(hass, hass_ws_client, device, init_integration)
+    assert not await _remove_device(hass, hass_ws_client, device)
     assert device_registry.async_get(device.id) is not None
 
 
@@ -84,7 +77,7 @@ async def test_removed_device_back_before_next_refresh(
     mock_myjdapi.list_devices.return_value = []
     await _refresh(hass, init_integration)
     device = _device(device_registry, init_integration, JDOWNLOADER_ID)
-    assert await _remove_device(hass, hass_ws_client, device, init_integration)
+    assert await _remove_device(hass, hass_ws_client, device)
     await hass.async_block_till_done()
 
     mock_myjdapi.list_devices.return_value = device_list
@@ -105,7 +98,7 @@ async def test_account_device_cannot_be_removed(
     device = _device(
         device_registry, init_integration, f"account_{init_integration.entry_id}"
     )
-    assert not await _remove_device(hass, hass_ws_client, device, init_integration)
+    assert not await _remove_device(hass, hass_ws_client, device)
 
 
 async def test_offline_device_removed_and_rediscovered(
@@ -123,7 +116,7 @@ async def test_offline_device_removed_and_rediscovered(
     await _refresh(hass, init_integration)
 
     device = _device(device_registry, init_integration, JDOWNLOADER_ID)
-    assert await _remove_device(hass, hass_ws_client, device, init_integration)
+    assert await _remove_device(hass, hass_ws_client, device)
     await hass.async_block_till_done()
 
     assert device_registry.async_get(device.id) is None
