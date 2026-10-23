@@ -9,7 +9,7 @@ name: myjd-live
 
 services:
   homeassistant:
-    image: ghcr.io/home-assistant/home-assistant:${HA_VERSION:-2026.9.3}
+    image: ghcr.io/home-assistant/home-assistant:${HA_VERSION:-2026.10.2}
     ports:
       - "8123:8123"
     volumes:

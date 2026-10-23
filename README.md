@@ -12,7 +12,7 @@ and install JDownloader updates.
 
 ## Requirements
 
-- Home Assistant 2026.8 or newer.
+- Home Assistant 2026.10 or newer.
 - A free [MyJDownloader account](https://my.jdownloader.org/login.html#register).
 - One or more JDownloader 2 instances connected to that account (in JDownloader: Settings → MyJDownloader).
   Desktop, headless and Docker installations are supported.
@@ -210,7 +210,7 @@ Home Assistant does not run on Windows, so tests run in a Linux container
 
 ```bash
 scripts/test          # ruff, formatting and pytest against the latest supported Home Assistant
-scripts/test --min    # tests against the minimum supported Home Assistant (2026.8)
+scripts/test --min    # tests against the minimum supported Home Assistant (2026.10)
 scripts/test mypy     # any command inside the test container
 ```
 
