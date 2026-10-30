@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
           python-version: "3.14"
           activate-environment: true
@@ -37,7 +37,7 @@ jobs:
             phcc: "0.13.371" # homeassistant 2026.10.0
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
           python-version: "3.14"
           activate-environment: true
