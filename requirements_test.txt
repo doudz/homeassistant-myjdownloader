@@ -1,8 +1,10 @@
 # Test and lint dependencies.
-# pytest-homeassistant-custom-component pins an exact Home Assistant version and
-# brings pytest, pytest-asyncio, pytest-cov, syrupy and freezegun. CI also tests
-# the minimum supported version: 0.13.371 -> homeassistant 2026.10.0.
-pytest-homeassistant-custom-component==0.13.375
+# pytest-homeassistant pins an exact Home Assistant version and brings pytest,
+# pytest-asyncio, syrupy and freezegun. CI also tests the minimum supported
+# version with the predecessor package: pytest-homeassistant-custom-component
+# 0.13.371 -> homeassistant 2026.10.0.
+pytest-homeassistant==2026.11.0b6
+pytest-cov==7.1.0
 myjdapi==1.1.11
 mypy==2.4.0
 ruff==0.17.3

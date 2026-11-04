@@ -4,7 +4,7 @@ import asyncio
 import threading
 from unittest.mock import MagicMock
 
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.myjdownloader.const import DOMAIN
 from homeassistant.config_entries import ConfigEntryDisabler, ConfigEntryState

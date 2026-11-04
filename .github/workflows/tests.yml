@@ -43,5 +43,7 @@ jobs:
           activate-environment: true
       - run: uv pip install -r requirements_test.txt
       - if: matrix.phcc != ''
-        run: uv pip install "pytest-homeassistant-custom-component==${{ matrix.phcc }}"
+        run: |
+          uv pip uninstall pytest-homeassistant
+          uv pip install "pytest-homeassistant-custom-component==${{ matrix.phcc }}"
       - run: pytest --cov --cov-report=term-missing --cov-report=xml
