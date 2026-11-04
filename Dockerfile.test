@@ -13,7 +13,8 @@ ARG PHCC_VERSION=""
 COPY requirements_test.txt /tmp/requirements_test.txt
 RUN uv pip install --system --no-cache -r /tmp/requirements_test.txt \
     && if [ -n "$PHCC_VERSION" ]; then \
-        uv pip install --system --no-cache "pytest-homeassistant-custom-component==$PHCC_VERSION"; \
+        uv pip uninstall --system pytest-homeassistant \
+        && uv pip install --system --no-cache "pytest-homeassistant-custom-component==$PHCC_VERSION"; \
     fi
 
 WORKDIR /work

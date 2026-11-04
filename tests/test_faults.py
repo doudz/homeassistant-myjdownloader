@@ -14,10 +14,7 @@ from myjdapi import (
     MYJDTooManyRequestsException,
 )
 import pytest
-from pytest_homeassistant_custom_component.common import (
-    MockConfigEntry,
-    async_fire_time_changed,
-)
+from pytest_homeassistant.common import MockConfigEntry, async_fire_time_changed
 import requests
 
 from homeassistant.const import STATE_ON, STATE_UNAVAILABLE

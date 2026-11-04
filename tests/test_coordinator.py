@@ -10,8 +10,8 @@ from myjdapi import (
     MYJDTokenInvalidException,
 )
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
-from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
+from pytest_homeassistant.common import MockConfigEntry
+from pytest_homeassistant.test_util.aiohttp import AiohttpClientMocker
 import requests
 
 from custom_components.myjdownloader.const import DOMAIN, LATEST_VERSION_URL
