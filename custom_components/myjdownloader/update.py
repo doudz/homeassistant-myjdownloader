@@ -74,6 +74,11 @@ class MyJDownloaderUpdate(MyJDownloaderDeviceEntity, UpdateEntity):
         return str(revision) if revision is not None else None
 
     @property
+    def has_update(self) -> bool:
+        """Return whether JDownloader reports an update."""
+        return bool(self.device_state.update_available)
+
+    @property
     def latest_version(self) -> str | None:
         """Return the latest available core revision.
 
