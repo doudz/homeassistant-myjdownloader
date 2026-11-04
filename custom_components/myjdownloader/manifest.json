@@ -1,6 +1,7 @@
 {
   "domain": "myjdownloader",
   "name": "MyJDownloader",
+  "categories": ["computers_network.nas_servers"],
   "codeowners": ["@doudz", "@oribafi"],
   "config_flow": true,
   "dependencies": [],
