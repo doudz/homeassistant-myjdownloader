@@ -142,10 +142,6 @@ async def async_migrate_entry(
     hass: HomeAssistant, entry: MyJDownloaderConfigEntry
 ) -> bool:
     """Migrate old config entries."""
-    if entry.version > 2:
-        # Downgrade from a future version
-        return False
-
     if entry.version == 1:
         _async_migrate_unique_ids(hass, entry)
 
