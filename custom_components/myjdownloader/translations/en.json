@@ -41,8 +41,6 @@
     },
     "abort": {
       "already_configured": "Account is already configured",
-      "reauth_successful": "Re-authentication was successful",
-      "reconfigure_successful": "Re-configuration was successful",
       "wrong_account": "The credentials belong to a different MyJDownloader account. Add it as a new entry instead."
     }
   },

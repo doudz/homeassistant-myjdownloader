@@ -41,8 +41,6 @@
     },
     "abort": {
       "already_configured": "Das Konto ist bereits konfiguriert",
-      "reauth_successful": "Die erneute Authentifizierung war erfolgreich",
-      "reconfigure_successful": "Die Neukonfiguration war erfolgreich",
       "wrong_account": "Die Anmeldedaten gehören zu einem anderen MyJDownloader-Konto. Füge es stattdessen als neuen Eintrag hinzu."
     }
   },

@@ -41,8 +41,6 @@
     },
     "abort": {
       "already_configured": "La cuenta ya está configurada",
-      "reauth_successful": "La reautenticación se completó correctamente",
-      "reconfigure_successful": "La reconfiguración se completó correctamente",
       "wrong_account": "Las credenciales pertenecen a otra cuenta de MyJDownloader. Agrégala como una nueva entrada en su lugar."
     }
   },

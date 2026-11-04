@@ -41,8 +41,6 @@
     },
     "abort": {
       "already_configured": "Le compte est déjà configuré",
-      "reauth_successful": "La réauthentification a réussi",
-      "reconfigure_successful": "La reconfiguration a réussi",
       "wrong_account": "Les identifiants appartiennent à un autre compte MyJDownloader. Ajoutez-le en tant qu'entrée distincte."
     }
   },
