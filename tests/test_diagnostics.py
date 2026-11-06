@@ -1,5 +1,6 @@
 """Tests for the MyJDownloader diagnostics."""
 
+from importlib.metadata import version
 import json
 
 from pytest_homeassistant.common import MockConfigEntry
@@ -36,6 +37,8 @@ async def test_entry_diagnostics(
     assert TEST_PASSWORD not in dumped
     # Download contents (file names, URLs) are not included, only counts.
     assert "packages" not in diagnostics["devices"][0]
+    # Kept out of the snapshot, so library updates don't change it.
+    assert diagnostics.pop("myjdapi_version") == version("myjdapi")
     assert diagnostics == snapshot(exclude=VOLATILE)
 
 
