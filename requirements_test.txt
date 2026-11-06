@@ -6,5 +6,5 @@
 pytest-homeassistant==2026.11.0b6
 pytest-cov==7.1.0
 myjdapi==1.1.11
-mypy==2.4.0
+mypy==2.4.1
 ruff==0.17.3
